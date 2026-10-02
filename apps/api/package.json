@@ -18,7 +18,8 @@
     "drizzle-orm": "^0.45.3",
     "express": "^4.21.2",
     "pg": "^8.23.1",
-    "shared": "*"
+    "shared": "*",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",

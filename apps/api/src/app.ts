@@ -1,11 +1,20 @@
 import express, { type Express } from "express";
+import type { Db } from "./db/types";
+import { errorHandler } from "./middleware/errorHandler";
+import { createEmployeesRouter } from "./routes/employees";
+import { createMetaRouter } from "./routes/meta";
 
-export function createApp(): Express {
+export function createApp(db: Db): Express {
   const app = express();
 
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok" });
   });
+
+  app.use("/api/employees", createEmployeesRouter(db));
+  app.use("/api/meta", createMetaRouter(db));
+
+  app.use(errorHandler);
 
   return app;
 }
