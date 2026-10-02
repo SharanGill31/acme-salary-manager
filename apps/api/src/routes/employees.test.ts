@@ -6,6 +6,10 @@ import { createTestDb } from "../db/testDb";
 import { departments, employees, payBands } from "../db/schema";
 import type { Db } from "../db/types";
 
+function todayIsoDate(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 describe("employees routes", () => {
   let app: Express;
   let engineeringId: number;
@@ -311,6 +315,53 @@ describe("employees routes", () => {
         .send({ email: "grace.hopper@acme.example" });
 
       expect(response.status).toBe(409);
+    });
+  });
+
+  describe("POST /api/employees/:id/salary-changes", () => {
+    it("records the change and grows the salary history", async () => {
+      const response = await request(app)
+        .post(`/api/employees/${adaId}/salary-changes`)
+        .send({
+          new_amount_minor: 9_500_000,
+          currency: "USD",
+          effective_date: todayIsoDate(),
+          reason: "Annual review",
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.employee.salaryMinor).toBe("9500000");
+      expect(response.body.salaryHistory).toHaveLength(1);
+      expect(response.body.salaryHistory[0].newAmountMinor).toBe("9500000");
+      expect(response.body.salaryHistory[0].previousAmountMinor).toBe("9000000");
+      expect(response.body.warnings).toEqual([]);
+    });
+
+    it("returns 404 when the employee does not exist", async () => {
+      const response = await request(app)
+        .post("/api/employees/999999/salary-changes")
+        .send({
+          new_amount_minor: 9_500_000,
+          currency: "USD",
+          effective_date: todayIsoDate(),
+          reason: "Annual review",
+        });
+
+      expect(response.status).toBe(404);
+    });
+
+    it("returns 422 with a specific field error for an invalid reason", async () => {
+      const response = await request(app)
+        .post(`/api/employees/${adaId}/salary-changes`)
+        .send({
+          new_amount_minor: 9_600_000,
+          currency: "USD",
+          effective_date: todayIsoDate(),
+          reason: "ok",
+        });
+
+      expect(response.status).toBe(422);
+      expect(response.body.errors.reason).toBeTruthy();
     });
   });
 });

@@ -123,3 +123,21 @@ export const employeeDetailResponseSchema = z.object({
 });
 
 export type EmployeeDetailResponse = z.infer<typeof employeeDetailResponseSchema>;
+
+// Structural checks only (shape/type) — 400. Business rules (positivity,
+// currency match, date range, reason length) live in validateSalaryChange
+// and surface as 422, not here.
+export const recordSalaryChangeSchema = z.object({
+  new_amount_minor: z.number().int(),
+  currency: z.string().regex(/^[A-Z]{3}$/, "currency must be three uppercase letters"),
+  effective_date: z.coerce.date(),
+  reason: z.string(),
+});
+
+export type RecordSalaryChangeBody = z.infer<typeof recordSalaryChangeSchema>;
+
+export const recordSalaryChangeResponseSchema = employeeDetailResponseSchema.extend({
+  warnings: z.array(z.string()),
+});
+
+export type RecordSalaryChangeResponse = z.infer<typeof recordSalaryChangeResponseSchema>;

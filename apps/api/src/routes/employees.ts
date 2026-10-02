@@ -6,10 +6,14 @@ import {
   employeeListItemSchema,
   employeeListQuerySchema,
   employeeListResponseSchema,
+  recordSalaryChangeResponseSchema,
+  recordSalaryChangeSchema,
   updateEmployeeSchema,
 } from "shared";
+import { systemClock } from "../clock";
 import type { Db } from "../db/types";
 import { createEmployeeRepository } from "../repositories/employees";
+import { createSalaryChangeRepository } from "../repositories/salaryChanges";
 import {
   createEmployee,
   getEmployeeDetail,
@@ -18,6 +22,7 @@ import {
   type EmployeeDetailResult,
   type EmployeeListRow,
 } from "../services/employees";
+import { recordSalaryChange } from "../services/salaryChanges";
 
 const idParamSchema = z.coerce.number().int().positive();
 
@@ -56,6 +61,7 @@ function toWireDetail(detail: EmployeeDetailResult) {
 export function createEmployeesRouter(db: Db): Router {
   const router = Router();
   const repo = createEmployeeRepository(db);
+  const salaryChangeRepo = createSalaryChangeRepository(db);
 
   router.get("/", async (req, res, next) => {
     try {
@@ -107,6 +113,34 @@ export function createEmployeesRouter(db: Db): Router {
       const payload = employeeListItemSchema.parse(toWireItem(updated));
 
       res.json(payload);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.post("/:id/salary-changes", async (req, res, next) => {
+    try {
+      const employeeId = idParamSchema.parse(req.params.id);
+      const body = recordSalaryChangeSchema.parse(req.body);
+
+      const result = await recordSalaryChange(
+        { employees: repo, salaryChanges: salaryChangeRepo },
+        systemClock,
+        {
+          employeeId,
+          newAmountMinor: body.new_amount_minor,
+          currency: body.currency,
+          effectiveDate: body.effective_date,
+          reason: body.reason,
+        },
+      );
+
+      const payload = recordSalaryChangeResponseSchema.parse({
+        ...toWireDetail(result),
+        warnings: result.warnings,
+      });
+
+      res.status(201).json(payload);
     } catch (err) {
       next(err);
     }

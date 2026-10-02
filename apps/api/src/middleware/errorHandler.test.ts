@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import type { Request, Response } from "express";
-import { ConflictError, errorHandler, NotFoundError } from "./errorHandler";
+import { ConflictError, errorHandler, NotFoundError, ValidationError } from "./errorHandler";
 
 function createMockRes() {
   const res = {
@@ -48,6 +48,24 @@ describe("errorHandler", () => {
     expect(res.status).toHaveBeenCalledWith(409);
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({ error: "email already exists" }),
+    );
+  });
+
+  it("maps a ValidationError to 422 with the errors object", () => {
+    const res = createMockRes();
+
+    errorHandler(
+      new ValidationError({ reason: "reason must be at least 3 characters" }),
+      {} as Request,
+      res,
+      vi.fn(),
+    );
+
+    expect(res.status).toHaveBeenCalledWith(422);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        errors: { reason: "reason must be at least 3 characters" },
+      }),
     );
   });
 

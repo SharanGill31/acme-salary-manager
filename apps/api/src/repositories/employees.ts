@@ -57,7 +57,10 @@ const SELECTED_COLUMNS = {
   currency: employees.currency,
 };
 
-async function selectEmployeeRowById(db: Db, id: number): Promise<EmployeeListRow | undefined> {
+export async function selectEmployeeRowById(
+  db: Db,
+  id: number,
+): Promise<EmployeeListRow | undefined> {
   const [row] = await db
     .select(SELECTED_COLUMNS)
     .from(employees)

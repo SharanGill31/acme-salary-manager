@@ -15,6 +15,13 @@ export class ConflictError extends Error {
   }
 }
 
+export class ValidationError extends Error {
+  constructor(public readonly errors: Record<string, string>) {
+    super("Validation failed");
+    this.name = "ValidationError";
+  }
+}
+
 export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   if (err instanceof ZodError) {
     res.status(400).json({ error: "Invalid request", fieldErrors: err.flatten().fieldErrors });
@@ -28,6 +35,11 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
 
   if (err instanceof ConflictError) {
     res.status(409).json({ error: err.message });
+    return;
+  }
+
+  if (err instanceof ValidationError) {
+    res.status(422).json({ errors: err.errors });
     return;
   }
 
