@@ -45,7 +45,7 @@ describe("formatMoney", () => {
   });
 
   it("accepts an explicit locale override", () => {
-    const result = formatMoney(8500050n, "EUR", "de-DE").replace(/ /g, " ");
+    const result = formatMoney(8500050n, "EUR", "de-DE").replace(new RegExp("\u00A0", "g"), " ");
 
     expect(result).toContain("85.000,50");
     expect(result).toContain("€");
