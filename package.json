@@ -1,0 +1,35 @@
+{
+  "name": "acme-salary-manager",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "run-p dev:api dev:web",
+    "dev:api": "npm run dev -w apps/api",
+    "dev:web": "npm run dev -w apps/web",
+    "build": "run-s build:shared build:api build:web",
+    "build:shared": "npm run build -w packages/shared",
+    "build:api": "npm run build -w apps/api",
+    "build:web": "npm run build -w apps/web",
+    "lint": "eslint .",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@types/node": "^22.10.5",
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-react-refresh": "^0.4.16",
+    "npm-run-all2": "^7.0.2",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.19.0"
+  }
+}
