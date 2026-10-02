@@ -1,6 +1,11 @@
-import "dotenv/config";
+import path from "node:path";
+import dotenv from "dotenv";
 import { db, pool } from "../client";
 import { seedDatabase } from "./run";
+
+// Scripts in this workspace run with apps/api as cwd, so the default
+// dotenv/config lookup misses the monorepo-root .env; point at it explicitly.
+dotenv.config({ path: path.resolve(__dirname, "../../../../..", ".env") });
 
 const DEFAULT_SEED = 42;
 const DEFAULT_COUNT = 10_000;
