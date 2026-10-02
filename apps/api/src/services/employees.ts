@@ -1,4 +1,12 @@
-import type { EmployeeSortColumn, EmployeeStatus, Level } from "shared";
+import type {
+  CreateEmployeeInput,
+  EmployeeSortColumn,
+  EmployeeStatus,
+  Level,
+  UpdateEmployeeInput,
+} from "shared";
+import { classifyAgainstBand, compaRatio as computeCompaRatio } from "../domain/payBand";
+import { ConflictError, NotFoundError } from "../middleware/errorHandler";
 
 export interface RawEmployeeListQuery {
   search?: string;
@@ -40,9 +48,33 @@ export interface EmployeeListRow {
   currency: string;
 }
 
+export interface SalaryChangeRow {
+  id: number;
+  previousAmountMinor: number | null;
+  newAmountMinor: number;
+  currency: string;
+  effectiveDate: Date;
+  reason: string;
+  createdAt: Date;
+}
+
+export interface PayBandRow {
+  level: Level;
+  countryCode: string;
+  minMinor: number;
+  maxMinor: number;
+}
+
 export interface EmployeeRepository {
   findMany(query: CleanEmployeeListQuery): Promise<EmployeeListRow[]>;
   count(query: CleanEmployeeListQuery): Promise<number>;
+  findById(id: number): Promise<EmployeeListRow | undefined>;
+  findSalaryHistory(employeeId: number): Promise<SalaryChangeRow[]>;
+  findPayBand(level: Level, countryCode: string): Promise<PayBandRow | undefined>;
+  emailExists(email: string, excludeId?: number): Promise<boolean>;
+  employeeCodeExists(employeeCode: string): Promise<boolean>;
+  create(input: CreateEmployeeInput): Promise<EmployeeListRow>;
+  update(id: number, patch: UpdateEmployeeInput): Promise<EmployeeListRow>;
 }
 
 export interface EmployeeListResult {
@@ -50,6 +82,14 @@ export interface EmployeeListResult {
   total: number;
   page: number;
   pageSize: number;
+}
+
+export interface EmployeeDetailResult {
+  employee: EmployeeListRow;
+  salaryHistory: SalaryChangeRow[];
+  payBand: PayBandRow;
+  bandPosition: "below" | "within" | "above";
+  compaRatio: number;
 }
 
 const DEFAULT_PAGE = 1;
@@ -83,4 +123,72 @@ export async function listEmployees(
   const [items, total] = await Promise.all([repo.findMany(clean), repo.count(clean)]);
 
   return { items, total, page: clean.page, pageSize: clean.pageSize };
+}
+
+export async function getEmployeeDetail(
+  repo: EmployeeRepository,
+  id: number,
+): Promise<EmployeeDetailResult> {
+  const employee = await repo.findById(id);
+
+  if (!employee) {
+    throw new NotFoundError(`Employee ${id} not found`);
+  }
+
+  const [salaryHistory, payBand] = await Promise.all([
+    repo.findSalaryHistory(id),
+    repo.findPayBand(employee.level, employee.countryCode),
+  ]);
+
+  if (!payBand) {
+    throw new Error(
+      `No pay band configured for level ${employee.level} in ${employee.countryCode}`,
+    );
+  }
+
+  const band = { minMinor: BigInt(payBand.minMinor), maxMinor: BigInt(payBand.maxMinor) };
+  const salary = BigInt(employee.salaryMinor);
+
+  return {
+    employee,
+    salaryHistory,
+    payBand,
+    bandPosition: classifyAgainstBand(salary, band),
+    compaRatio: computeCompaRatio(salary, band),
+  };
+}
+
+export async function createEmployee(
+  repo: EmployeeRepository,
+  input: CreateEmployeeInput,
+): Promise<EmployeeListRow> {
+  if (await repo.emailExists(input.email)) {
+    throw new ConflictError(`An employee with email ${input.email} already exists`);
+  }
+
+  if (await repo.employeeCodeExists(input.employee_code)) {
+    throw new ConflictError(
+      `An employee with employee_code ${input.employee_code} already exists`,
+    );
+  }
+
+  return repo.create(input);
+}
+
+export async function updateEmployee(
+  repo: EmployeeRepository,
+  id: number,
+  patch: UpdateEmployeeInput,
+): Promise<EmployeeListRow> {
+  const existing = await repo.findById(id);
+
+  if (!existing) {
+    throw new NotFoundError(`Employee ${id} not found`);
+  }
+
+  if (patch.email !== undefined && (await repo.emailExists(patch.email, id))) {
+    throw new ConflictError(`An employee with email ${patch.email} already exists`);
+  }
+
+  return repo.update(id, patch);
 }

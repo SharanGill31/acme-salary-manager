@@ -8,6 +8,13 @@ export class NotFoundError extends Error {
   }
 }
 
+export class ConflictError extends Error {
+  constructor(message = "Conflict") {
+    super(message);
+    this.name = "ConflictError";
+  }
+}
+
 export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   if (err instanceof ZodError) {
     res.status(400).json({ error: "Invalid request", fieldErrors: err.flatten().fieldErrors });
@@ -16,6 +23,11 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
 
   if (err instanceof NotFoundError) {
     res.status(404).json({ error: err.message });
+    return;
+  }
+
+  if (err instanceof ConflictError) {
+    res.status(409).json({ error: err.message });
     return;
   }
 

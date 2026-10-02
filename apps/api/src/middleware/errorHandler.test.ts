@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import type { Request, Response } from "express";
-import { errorHandler, NotFoundError } from "./errorHandler";
+import { ConflictError, errorHandler, NotFoundError } from "./errorHandler";
 
 function createMockRes() {
   const res = {
@@ -38,6 +38,17 @@ describe("errorHandler", () => {
 
     expect(res.status).toHaveBeenCalledWith(404);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: "Employee not found" }));
+  });
+
+  it("maps a ConflictError to 409", () => {
+    const res = createMockRes();
+
+    errorHandler(new ConflictError("email already exists"), {} as Request, res, vi.fn());
+
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ error: "email already exists" }),
+    );
   });
 
   it("maps any other error to 500 without leaking details", () => {

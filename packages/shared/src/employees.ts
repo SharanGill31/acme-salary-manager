@@ -60,3 +60,66 @@ export const employeeListResponseSchema = z.object({
 });
 
 export type EmployeeListResponse = z.infer<typeof employeeListResponseSchema>;
+
+export const createEmployeeSchema = z.object({
+  full_name: z.string().trim().min(1),
+  email: z.string().email(),
+  employee_code: z.string().trim().min(1),
+  country_code: z
+    .string()
+    .regex(/^[A-Z]{2}$/, "country_code must be two uppercase letters"),
+  department_id: z.number().int().positive(),
+  job_title: z.string().trim().min(1),
+  level: z.enum(LEVELS),
+  hire_date: z.coerce.date(),
+  salary_minor: z.number().int().positive(),
+  currency: z.string().regex(/^[A-Z]{3}$/, "currency must be three uppercase letters"),
+  status: z.enum(EMPLOYEE_STATUSES),
+});
+
+export type CreateEmployeeInput = z.infer<typeof createEmployeeSchema>;
+
+export const updateEmployeeSchema = z
+  .object({
+    full_name: z.string().trim().min(1).optional(),
+    email: z.string().email().optional(),
+    department_id: z.number().int().positive().optional(),
+    job_title: z.string().trim().min(1).optional(),
+    level: z.enum(LEVELS).optional(),
+    status: z.enum(EMPLOYEE_STATUSES).optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "At least one field must be provided",
+  });
+
+export type UpdateEmployeeInput = z.infer<typeof updateEmployeeSchema>;
+
+export const salaryChangeItemSchema = z.object({
+  id: z.number(),
+  previousAmountMinor: z.string().nullable(),
+  newAmountMinor: z.string(),
+  currency: z.string(),
+  effectiveDate: z.string(),
+  reason: z.string(),
+  createdAt: z.string(),
+});
+
+export const payBandItemSchema = z.object({
+  level: z.enum(LEVELS),
+  countryCode: z.string(),
+  minMinor: z.string(),
+  maxMinor: z.string(),
+});
+
+export const BAND_POSITIONS = ["below", "within", "above"] as const;
+export type BandPosition = (typeof BAND_POSITIONS)[number];
+
+export const employeeDetailResponseSchema = z.object({
+  employee: employeeListItemSchema,
+  salaryHistory: z.array(salaryChangeItemSchema),
+  payBand: payBandItemSchema,
+  bandPosition: z.enum(BAND_POSITIONS),
+  compaRatio: z.number(),
+});
+
+export type EmployeeDetailResponse = z.infer<typeof employeeDetailResponseSchema>;

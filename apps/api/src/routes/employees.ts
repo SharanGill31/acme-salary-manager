@@ -1,14 +1,55 @@
 import { Router } from "express";
-import { employeeListQuerySchema, employeeListResponseSchema } from "shared";
+import { z } from "zod";
+import {
+  createEmployeeSchema,
+  employeeDetailResponseSchema,
+  employeeListItemSchema,
+  employeeListQuerySchema,
+  employeeListResponseSchema,
+  updateEmployeeSchema,
+} from "shared";
 import type { Db } from "../db/types";
 import { createEmployeeRepository } from "../repositories/employees";
-import { listEmployees, type EmployeeListRow } from "../services/employees";
+import {
+  createEmployee,
+  getEmployeeDetail,
+  listEmployees,
+  updateEmployee,
+  type EmployeeDetailResult,
+  type EmployeeListRow,
+} from "../services/employees";
+
+const idParamSchema = z.coerce.number().int().positive();
 
 function toWireItem(row: EmployeeListRow) {
   return {
     ...row,
     hireDate: row.hireDate.toISOString(),
     salaryMinor: String(row.salaryMinor),
+  };
+}
+
+function toWireDetail(detail: EmployeeDetailResult) {
+  return {
+    employee: toWireItem(detail.employee),
+    salaryHistory: detail.salaryHistory.map((change) => ({
+      id: change.id,
+      previousAmountMinor:
+        change.previousAmountMinor === null ? null : String(change.previousAmountMinor),
+      newAmountMinor: String(change.newAmountMinor),
+      currency: change.currency,
+      effectiveDate: change.effectiveDate.toISOString(),
+      reason: change.reason,
+      createdAt: change.createdAt.toISOString(),
+    })),
+    payBand: {
+      level: detail.payBand.level,
+      countryCode: detail.payBand.countryCode,
+      minMinor: String(detail.payBand.minMinor),
+      maxMinor: String(detail.payBand.maxMinor),
+    },
+    bandPosition: detail.bandPosition,
+    compaRatio: detail.compaRatio,
   };
 }
 
@@ -27,6 +68,43 @@ export function createEmployeesRouter(db: Db): Router {
         page: result.page,
         pageSize: result.pageSize,
       });
+
+      res.json(payload);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.get("/:id", async (req, res, next) => {
+    try {
+      const id = idParamSchema.parse(req.params.id);
+      const detail = await getEmployeeDetail(repo, id);
+      const payload = employeeDetailResponseSchema.parse(toWireDetail(detail));
+
+      res.json(payload);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.post("/", async (req, res, next) => {
+    try {
+      const input = createEmployeeSchema.parse(req.body);
+      const created = await createEmployee(repo, input);
+      const payload = employeeListItemSchema.parse(toWireItem(created));
+
+      res.status(201).json(payload);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.patch("/:id", async (req, res, next) => {
+    try {
+      const id = idParamSchema.parse(req.params.id);
+      const patch = updateEmployeeSchema.parse(req.body);
+      const updated = await updateEmployee(repo, id, patch);
+      const payload = employeeListItemSchema.parse(toWireItem(updated));
 
       res.json(payload);
     } catch (err) {
