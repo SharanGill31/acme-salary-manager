@@ -9,9 +9,11 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx src/db/migrate.ts"
+    "db:migrate": "tsx src/db/migrate.ts",
+    "db:seed": "tsx src/db/seed/cli.ts"
   },
   "dependencies": {
+    "@faker-js/faker": "^10.6.0",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.45.3",
     "express": "^4.21.2",
