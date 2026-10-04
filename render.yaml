@@ -33,11 +33,11 @@ services:
         value: "24"
     routes:
       # Order matters: proxy the API first, then fall back to the SPA so deep
-      # links like /employees/42 survive a reload. If Render gives the API a
-      # different hostname (e.g. with a suffix), update this destination.
+      # links like /employees/42 survive a reload. The destination is the API
+      # service's actual Render hostname (Render added the -jqzf suffix).
       - type: rewrite
         source: /api/*
-        destination: https://acme-salary-api.onrender.com/api/*
+        destination: https://acme-salary-api-jqzf.onrender.com/api/*
       - type: rewrite
         source: /*
         destination: /index.html
