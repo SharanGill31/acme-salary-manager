@@ -24,7 +24,7 @@ import { Link as RouterLink, useNavigate, useSearchParams } from "react-router-d
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { EMPLOYEE_STATUSES, type EmployeeSortColumn } from "shared";
 import { fetchEmployees } from "./employeesApi";
-import { formatCurrency } from "../../lib/formatCurrency";
+import { formatCurrency } from "../../lib/money";
 import { useDebouncedValue } from "../../lib/useDebouncedValue";
 import { useMetaQuery } from "../../lib/useMetaQuery";
 
