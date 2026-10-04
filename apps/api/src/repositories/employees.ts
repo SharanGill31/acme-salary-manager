@@ -3,6 +3,7 @@ import type { CreateEmployeeInput, Level, UpdateEmployeeInput } from "shared";
 import { departments, employees, payBands, salaryChanges } from "../db/schema";
 import type { Db } from "../db/types";
 import type {
+  CleanEmployeeExportQuery,
   CleanEmployeeListQuery,
   EmployeeListRow,
   EmployeeRepository,
@@ -20,7 +21,15 @@ const SORT_COLUMNS = {
   salary_minor: employees.salaryMinor,
 } as const;
 
-function buildWhere(query: CleanEmployeeListQuery): SQL | undefined {
+// Many employees tie on the sort column (country, level, status...), and
+// Postgres doesn't guarantee an order among ties, so pages could repeat or
+// skip rows. id breaks the tie, always ascending.
+function buildOrderBy(query: CleanEmployeeExportQuery): SQL[] {
+  const orderFn = query.sortDir === "desc" ? desc : asc;
+  return [orderFn(SORT_COLUMNS[query.sortBy]), asc(employees.id)];
+}
+
+function buildWhere(query: CleanEmployeeExportQuery): SQL | undefined {
   const conditions: SQL[] = [];
 
   if (query.search) {
@@ -73,20 +82,24 @@ export async function selectEmployeeRowById(
 export function createEmployeeRepository(db: Db): EmployeeRepository {
   return {
     async findMany(query: CleanEmployeeListQuery): Promise<EmployeeListRow[]> {
-      const where = buildWhere(query);
-      const orderFn = query.sortDir === "desc" ? desc : asc;
-
-      // Many employees tie on the sort column (country, level, status...), and
-      // Postgres doesn't guarantee an order among ties, so pages could repeat
-      // or skip rows. id breaks the tie, always ascending.
       return db
         .select(SELECTED_COLUMNS)
         .from(employees)
         .innerJoin(departments, eq(employees.departmentId, departments.id))
-        .where(where)
-        .orderBy(orderFn(SORT_COLUMNS[query.sortBy]), asc(employees.id))
+        .where(buildWhere(query))
+        .orderBy(...buildOrderBy(query))
         .limit(query.pageSize)
         .offset((query.page - 1) * query.pageSize);
+    },
+
+    // Same selection and order as findMany, without paging (for the export).
+    async findAll(query: CleanEmployeeExportQuery): Promise<EmployeeListRow[]> {
+      return db
+        .select(SELECTED_COLUMNS)
+        .from(employees)
+        .innerJoin(departments, eq(employees.departmentId, departments.id))
+        .where(buildWhere(query))
+        .orderBy(...buildOrderBy(query));
     },
 
     async count(query: CleanEmployeeListQuery): Promise<number> {

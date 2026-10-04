@@ -218,6 +218,59 @@ describe("employees routes", () => {
     });
   });
 
+  describe("GET /api/employees/export", () => {
+    // Data lines of a CSV response: without the BOM, header or trailing CRLF.
+    function dataLines(text: string): string[] {
+      return text.replace(/^\uFEFF/, "").split("\r\n").slice(1, -1);
+    }
+
+    it("downloads a dated UTF-8 CSV file", async () => {
+      const response = await request(app).get("/api/employees/export");
+      const today = new Date().toISOString().slice(0, 10);
+
+      expect(response.status).toBe(200);
+      expect(response.headers["content-type"]).toBe("text/csv; charset=utf-8");
+      expect(response.headers["content-disposition"]).toBe(
+        `attachment; filename="employees-${today}.csv"`,
+      );
+      expect(response.text.startsWith("\uFEFFEmployee code,Full name,Email,")).toBe(true);
+    });
+
+    it("applies the list's filters and sort", async () => {
+      const response = await request(app)
+        .get("/api/employees/export")
+        .query({ countryCode: "GB", sortBy: "full_name", sortDir: "desc" });
+
+      expect(dataLines(response.text)).toEqual([
+        "EMP000004,Margaret Hamilton,margaret.hamilton@acme.example,GB,Sales,Account Executive,L3,Active,2021-02-01,60000.00,GBP",
+        "EMP000006,Katherine Johnson,katherine.johnson@acme.example,GB,Sales,VP Sales,L6,Inactive,2016-11-30,250000.00,GBP",
+        "EMP000003,Alan Turing,alan.turing@acme.example,GB,Engineering,Staff Engineer,L4,Inactive,2019-07-15,95000.00,GBP",
+      ]);
+    });
+
+    it("applies the search", async () => {
+      const response = await request(app).get("/api/employees/export").query({ search: "hopper" });
+
+      expect(dataLines(response.text).map((line) => line.split(",")[1])).toEqual(["Grace Hopper"]);
+    });
+
+    it("exports every matching employee, ignoring any paging", async () => {
+      const list = await request(app).get("/api/employees");
+      const response = await request(app)
+        .get("/api/employees/export")
+        .query({ page: 2, pageSize: 1 });
+
+      expect(dataLines(response.text)).toHaveLength(list.body.total);
+    });
+
+    it("returns 400 for an invalid filter", async () => {
+      const response = await request(app).get("/api/employees/export").query({ countryCode: "usa" });
+
+      expect(response.status).toBe(400);
+      expect(response.body.fieldErrors.countryCode).toBeTruthy();
+    });
+  });
+
   describe("GET /api/employees/:id", () => {
     it("returns the employee with history, pay band, band position and compa ratio", async () => {
       const response = await request(app).get(`/api/employees/${adaId}`);

@@ -34,6 +34,15 @@ export const employeeListQuerySchema = z.object({
 
 export type EmployeeListQuery = z.infer<typeof employeeListQuerySchema>;
 
+// The CSV export takes the list's search, filters and sort but never pages:
+// it always contains every matching employee. page/pageSize are dropped.
+export const employeeExportQuerySchema = employeeListQuerySchema.omit({
+  page: true,
+  pageSize: true,
+});
+
+export type EmployeeExportQuery = z.infer<typeof employeeExportQuerySchema>;
+
 export const employeeListItemSchema = z.object({
   id: z.number(),
   employeeCode: z.string(),

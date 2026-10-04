@@ -45,6 +45,7 @@ const VALID_INPUT: RecordSalaryChangeInput = {
 function createFakeEmployeeRepo(overrides: Partial<EmployeeRepository> = {}): EmployeeRepository {
   return {
     findMany: vi.fn().mockResolvedValue([]),
+    findAll: vi.fn().mockResolvedValue([]),
     count: vi.fn().mockResolvedValue(0),
     findById: vi.fn().mockResolvedValue(undefined),
     findSalaryHistory: vi.fn().mockResolvedValue([]),

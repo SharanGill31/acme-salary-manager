@@ -3,6 +3,7 @@ import type { CreateEmployeeInput } from "shared";
 import { ConflictError, NotFoundError, ValidationError } from "../middleware/errorHandler";
 import {
   createEmployee,
+  exportEmployees,
   getEmployeeDetail,
   listEmployees,
   updateEmployee,
@@ -73,6 +74,7 @@ const CREATE_INPUT: CreateEmployeeInput = {
 function createFakeRepo(overrides: Partial<EmployeeRepository> = {}): EmployeeRepository {
   return {
     findMany: vi.fn().mockResolvedValue([]),
+    findAll: vi.fn().mockResolvedValue([]),
     count: vi.fn().mockResolvedValue(0),
     findById: vi.fn().mockResolvedValue(undefined),
     findSalaryHistory: vi.fn().mockResolvedValue([]),
@@ -169,6 +171,35 @@ describe("getEmployeeDetail", () => {
     const repo = createFakeRepo({ findById: vi.fn().mockResolvedValue(undefined) });
 
     await expect(getEmployeeDetail(repo, 999)).rejects.toThrow(NotFoundError);
+  });
+});
+
+describe("exportEmployees", () => {
+  const clock = { today: () => new Date("2026-10-04T15:30:00.000Z") };
+
+  it("fetches every matching row with the default sort and no paging", async () => {
+    const repo = createFakeRepo();
+
+    await exportEmployees(repo, clock, { countryCode: "GB", status: "active" });
+
+    expect(repo.findAll).toHaveBeenCalledWith({
+      countryCode: "GB",
+      status: "active",
+      sortBy: "full_name",
+      sortDir: "asc",
+    });
+  });
+
+  it("returns the rows as CSV, named with today's date", async () => {
+    const repo = createFakeRepo({ findAll: vi.fn().mockResolvedValue([SAMPLE_ROW]) });
+
+    const result = await exportEmployees(repo, clock, { sortBy: "hire_date", sortDir: "desc" });
+
+    expect(repo.findAll).toHaveBeenCalledWith({ sortBy: "hire_date", sortDir: "desc" });
+    expect(result.filename).toBe("employees-2026-10-04.csv");
+    expect(result.csv).toContain(
+      "EMP000001,Ada Lovelace,ada.lovelace@acme.example,GB,Engineering,Software Engineer,L3,Active,2021-05-01,90000.00,GBP\r\n",
+    );
   });
 });
 

@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   createEmployeeSchema,
   employeeDetailResponseSchema,
+  employeeExportQuerySchema,
   employeeListItemSchema,
   employeeListQuerySchema,
   employeeListResponseSchema,
@@ -16,6 +17,7 @@ import { createEmployeeRepository } from "../repositories/employees";
 import { createSalaryChangeRepository } from "../repositories/salaryChanges";
 import {
   createEmployee,
+  exportEmployees,
   getEmployeeDetail,
   listEmployees,
   updateEmployee,
@@ -76,6 +78,25 @@ export function createEmployeesRouter(db: Db): Router {
       });
 
       res.json(payload);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Registered before "/:id", which would otherwise match "export" and reject
+  // it as an invalid id.
+  router.get("/export", async (req, res, next) => {
+    try {
+      const query = employeeExportQuerySchema.parse(req.query);
+      const { filename, csv } = await exportEmployees(repo, systemClock, query);
+
+      res
+        .status(200)
+        .set({
+          "Content-Type": "text/csv; charset=utf-8",
+          "Content-Disposition": `attachment; filename="${filename}"`,
+        })
+        .send(csv);
     } catch (err) {
       next(err);
     }

@@ -5,6 +5,8 @@ import type {
   Level,
   UpdateEmployeeInput,
 } from "shared";
+import type { Clock } from "../clock";
+import { buildEmployeesCsv } from "../domain/employeesCsv";
 import { validateNewEmployee } from "../domain/newEmployee";
 import { classifyAgainstBand, compaRatio as computeCompaRatio } from "../domain/payBand";
 import { ConflictError, NotFoundError, ValidationError } from "../middleware/errorHandler";
@@ -32,6 +34,9 @@ export interface CleanEmployeeListQuery {
   page: number;
   pageSize: number;
 }
+
+// The list query without paging: what the CSV export selects.
+export type CleanEmployeeExportQuery = Omit<CleanEmployeeListQuery, "page" | "pageSize">;
 
 export interface EmployeeListRow {
   id: number;
@@ -68,6 +73,7 @@ export interface PayBandRow {
 
 export interface EmployeeRepository {
   findMany(query: CleanEmployeeListQuery): Promise<EmployeeListRow[]>;
+  findAll(query: CleanEmployeeExportQuery): Promise<EmployeeListRow[]>;
   count(query: CleanEmployeeListQuery): Promise<number>;
   findById(id: number): Promise<EmployeeListRow | undefined>;
   findSalaryHistory(employeeId: number): Promise<SalaryChangeRow[]>;
@@ -98,10 +104,12 @@ const DEFAULT_PAGE_SIZE = 20;
 const DEFAULT_SORT_BY: EmployeeSortColumn = "full_name";
 const DEFAULT_SORT_DIR = "asc";
 
-function cleanQuery(query: RawEmployeeListQuery): CleanEmployeeListQuery {
-  const clean: CleanEmployeeListQuery = {
-    page: query.page ?? DEFAULT_PAGE,
-    pageSize: query.pageSize ?? DEFAULT_PAGE_SIZE,
+// Filters and sort with defaults applied; shared by the list and the export
+// so both select exactly the same employees in the same order.
+function cleanFilterQuery(
+  query: Omit<RawEmployeeListQuery, "page" | "pageSize">,
+): CleanEmployeeExportQuery {
+  const clean: CleanEmployeeExportQuery = {
     sortBy: query.sortBy ?? DEFAULT_SORT_BY,
     sortDir: query.sortDir ?? DEFAULT_SORT_DIR,
   };
@@ -115,6 +123,14 @@ function cleanQuery(query: RawEmployeeListQuery): CleanEmployeeListQuery {
   return clean;
 }
 
+function cleanQuery(query: RawEmployeeListQuery): CleanEmployeeListQuery {
+  return {
+    page: query.page ?? DEFAULT_PAGE,
+    pageSize: query.pageSize ?? DEFAULT_PAGE_SIZE,
+    ...cleanFilterQuery(query),
+  };
+}
+
 export async function listEmployees(
   repo: EmployeeRepository,
   query: RawEmployeeListQuery,
@@ -124,6 +140,24 @@ export async function listEmployees(
   const [items, total] = await Promise.all([repo.findMany(clean), repo.count(clean)]);
 
   return { items, total, page: clean.page, pageSize: clean.pageSize };
+}
+
+export interface EmployeeExportResult {
+  filename: string;
+  csv: string;
+}
+
+// Every employee matching the list's search, filters and sort, as CSV. The
+// filename carries today's (UTC) date from the injected clock.
+export async function exportEmployees(
+  repo: EmployeeRepository,
+  clock: Clock,
+  query: Omit<RawEmployeeListQuery, "page" | "pageSize">,
+): Promise<EmployeeExportResult> {
+  const rows = await repo.findAll(cleanFilterQuery(query));
+  const date = clock.today().toISOString().slice(0, 10);
+
+  return { filename: `employees-${date}.csv`, csv: buildEmployeesCsv(rows) };
 }
 
 export async function getEmployeeDetail(
