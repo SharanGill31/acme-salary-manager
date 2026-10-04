@@ -13,7 +13,7 @@ import {
 } from "@mui/material";
 import { Link as RouterLink, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { EmployeeListItem, RecordSalaryChangeResponse } from "shared";
+import type { EmployeeListItem, EmployeeStatus, RecordSalaryChangeResponse } from "shared";
 import { ApiError } from "../../lib/api";
 import { formatCurrency } from "../../lib/money";
 import { formatDate } from "../../lib/formatDate";
@@ -22,6 +22,8 @@ import { PayBandCard } from "./PayBandCard";
 import { SalaryHistoryTable } from "./SalaryHistoryTable";
 import { SalaryChangeDialog } from "./SalaryChangeDialog";
 import { EditDetailsDialog } from "./EditDetailsDialog";
+import { StatusChangeDialog } from "./StatusChangeDialog";
+import { statusActionLabel } from "./employeeStatus";
 
 interface Notice {
   severity: "success" | "warning";
@@ -94,7 +96,7 @@ function EmployeeDetails({ employee }: { employee: EmployeeListItem }) {
 export function EmployeeDetailPage() {
   const id = parseId(useParams().id);
   const queryClient = useQueryClient();
-  const [openDialog, setOpenDialog] = useState<"salary" | "edit" | null>(null);
+  const [openDialog, setOpenDialog] = useState<"salary" | "edit" | "status" | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
 
   const employeeQuery = useQuery({
@@ -122,6 +124,13 @@ export function EmployeeDetailPage() {
     void queryClient.invalidateQueries({ queryKey: ["employees"] });
     setOpenDialog(null);
     setNotice({ severity: "success", message: "Details updated" });
+  }
+
+  function handleStatusSaved(fullName: string, status: EmployeeStatus) {
+    void queryClient.invalidateQueries({ queryKey: ["employee", id] });
+    void queryClient.invalidateQueries({ queryKey: ["employees"] });
+    setOpenDialog(null);
+    setNotice({ severity: "success", message: `${fullName} marked as ${status}` });
   }
 
   if (id === null) return <NotFound />;
@@ -172,6 +181,9 @@ export function EmployeeDetailPage() {
         </Typography>
         {employee.status === "inactive" && <Chip label="Inactive" size="small" />}
         <Stack direction="row" spacing={1} sx={{ ml: "auto" }}>
+          <Button variant="outlined" onClick={() => setOpenDialog("status")}>
+            {statusActionLabel(employee)}
+          </Button>
           <Button variant="outlined" onClick={() => setOpenDialog("edit")}>
             Edit details
           </Button>
@@ -204,6 +216,13 @@ export function EmployeeDetailPage() {
         employee={employee}
         onClose={() => setOpenDialog(null)}
         onSaved={handleDetailsSaved}
+      />
+
+      <StatusChangeDialog
+        open={openDialog === "status"}
+        employee={employee}
+        onClose={() => setOpenDialog(null)}
+        onSaved={(status) => handleStatusSaved(employee.fullName, status)}
       />
 
       {notice && (
