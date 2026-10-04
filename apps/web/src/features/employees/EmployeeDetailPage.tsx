@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Box,
@@ -11,7 +11,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { Link as RouterLink, useParams } from "react-router-dom";
+import { Link as RouterLink, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { EmployeeListItem, EmployeeStatus, RecordSalaryChangeResponse } from "shared";
 import { ApiError } from "../../lib/api";
@@ -96,8 +96,21 @@ function EmployeeDetails({ employee }: { employee: EmployeeListItem }) {
 export function EmployeeDetailPage() {
   const id = parseId(useParams().id);
   const queryClient = useQueryClient();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [openDialog, setOpenDialog] = useState<"salary" | "edit" | "status" | null>(null);
-  const [notice, setNotice] = useState<Notice | null>(null);
+  // A page that navigates here (e.g. after adding an employee) can pass a
+  // confirmation message in the navigation state.
+  const [notice, setNotice] = useState<Notice | null>(() => {
+    const message = (location.state as { notice?: string } | null)?.notice;
+    return message ? { severity: "success", message } : null;
+  });
+
+  // Drop the navigation state once read, so a page refresh doesn't repeat
+  // the confirmation.
+  useEffect(() => {
+    if (location.state) navigate(location.pathname, { replace: true, state: null });
+  }, [location.state, location.pathname, navigate]);
 
   const employeeQuery = useQuery({
     queryKey: ["employee", id],
