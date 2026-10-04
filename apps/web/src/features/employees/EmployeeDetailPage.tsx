@@ -1,12 +1,145 @@
-import { Typography } from "@mui/material";
-import { useParams } from "react-router-dom";
+import { Alert, Box, Button, Chip, Link, Paper, Skeleton, Stack, Typography } from "@mui/material";
+import { Link as RouterLink, useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import type { EmployeeListItem } from "shared";
+import { ApiError } from "../../lib/api";
+import { formatCurrency } from "../../lib/money";
+import { formatDate } from "../../lib/formatDate";
+import { fetchEmployee } from "./employeesApi";
+import { PayBandCard } from "./PayBandCard";
+import { SalaryHistoryTable } from "./SalaryHistoryTable";
 
-export function EmployeeDetailPage() {
-  const { id } = useParams();
+function parseId(raw: string | undefined): number | null {
+  if (!raw || !/^\d+$/.test(raw)) return null;
+  const id = Number(raw);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+}
+
+function BackLink() {
+  return (
+    <Link component={RouterLink} to="/employees" sx={{ display: "inline-block", mb: 2 }}>
+      ← Back to employees
+    </Link>
+  );
+}
+
+function NotFound() {
+  return (
+    <Box>
+      <BackLink />
+      <Typography variant="h4" component="h1" gutterBottom>
+        Employee not found
+      </Typography>
+      <Typography>No employee exists with this ID. It may have been removed or the link is wrong.</Typography>
+    </Box>
+  );
+}
+
+function EmployeeDetails({ employee }: { employee: EmployeeListItem }) {
+  const rows: [string, string][] = [
+    ["Employee code", employee.employeeCode],
+    ["Email", employee.email],
+    ["Job title", employee.jobTitle],
+    ["Department", employee.departmentName],
+    ["Level", employee.level],
+    ["Country", employee.countryCode],
+    ["Status", employee.status === "active" ? "Active" : "Inactive"],
+    ["Hire date", formatDate(employee.hireDate)],
+    ["Current salary", formatCurrency(employee.salaryMinor, employee.currency)],
+  ];
 
   return (
-    <Typography variant="h4" component="h1">
-      Employee {id} — coming soon
-    </Typography>
+    <Paper component="section" aria-labelledby="details-heading" sx={{ p: 3 }}>
+      <Typography id="details-heading" variant="h6" component="h2" sx={{ mb: 2 }}>
+        Details
+      </Typography>
+      <Box
+        component="dl"
+        sx={{ m: 0, display: "grid", gridTemplateColumns: "max-content 1fr", columnGap: 3, rowGap: 1 }}
+      >
+        {rows.map(([term, value]) => (
+          <Box key={term} sx={{ display: "contents" }}>
+            <Typography component="dt" color="text.secondary">
+              {term}
+            </Typography>
+            <Typography component="dd" sx={{ m: 0 }}>
+              {value}
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+    </Paper>
+  );
+}
+
+export function EmployeeDetailPage() {
+  const id = parseId(useParams().id);
+
+  const employeeQuery = useQuery({
+    queryKey: ["employee", id],
+    queryFn: () => fetchEmployee(id as number),
+    enabled: id !== null,
+  });
+
+  if (id === null) return <NotFound />;
+
+  if (employeeQuery.isError) {
+    if (employeeQuery.error instanceof ApiError && employeeQuery.error.status === 404) {
+      return <NotFound />;
+    }
+    return (
+      <Box>
+        <BackLink />
+        <Alert
+          severity="error"
+          action={
+            <Button color="inherit" size="small" onClick={() => employeeQuery.refetch()}>
+              Retry
+            </Button>
+          }
+        >
+          Failed to load employee.
+        </Alert>
+      </Box>
+    );
+  }
+
+  if (employeeQuery.isPending) {
+    return (
+      <Box aria-busy="true">
+        <BackLink />
+        <Typography role="status" sx={{ mb: 2 }}>
+          Loading employee…
+        </Typography>
+        <Skeleton variant="text" width={320} height={48} />
+        <Skeleton variant="rectangular" height={240} sx={{ mt: 2 }} />
+      </Box>
+    );
+  }
+
+  const detail = employeeQuery.data;
+  const { employee } = detail;
+
+  return (
+    <Box>
+      <BackLink />
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 0.5 }}>
+        <Typography variant="h4" component="h1">
+          {employee.fullName}
+        </Typography>
+        {employee.status === "inactive" && <Chip label="Inactive" size="small" />}
+      </Box>
+      <Typography color="text.secondary" sx={{ mb: 3 }}>
+        {employee.jobTitle} · {employee.departmentName}
+      </Typography>
+
+      <Stack spacing={3}>
+        <Box sx={{ display: "grid", gap: 3, gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" } }}>
+          <EmployeeDetails employee={employee} />
+          <PayBandCard detail={detail} />
+        </Box>
+        <SalaryHistoryTable history={detail.salaryHistory} />
+      </Stack>
+    </Box>
   );
 }
