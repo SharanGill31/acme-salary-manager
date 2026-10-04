@@ -48,11 +48,14 @@ describe("updateEmployee", () => {
     expect(result.jobTitle).toBe("Staff Engineer");
   });
 
-  it("surfaces a 409 conflict as an ApiError with the server message", async () => {
+  it("surfaces a 409 conflict as an ApiError with the message and conflicting field", async () => {
     server.use(
       http.patch("/api/employees/:id", () =>
         HttpResponse.json(
-          { error: "An employee with email grace.hopper@acme.example already exists" },
+          {
+            error: "An employee with this email already exists",
+            errors: { email: "An employee with this email already exists" },
+          },
           { status: 409 },
         ),
       ),
@@ -61,7 +64,8 @@ describe("updateEmployee", () => {
     await expect(updateEmployee(1, { email: "grace.hopper@acme.example" })).rejects.toMatchObject({
       constructor: ApiError,
       status: 409,
-      message: "An employee with email grace.hopper@acme.example already exists",
+      message: "An employee with this email already exists",
+      errors: { email: "An employee with this email already exists" },
     });
   });
 });

@@ -51,6 +51,23 @@ describe("errorHandler", () => {
     );
   });
 
+  it("includes the conflicting field in a 409 when the ConflictError names one", () => {
+    const res = createMockRes();
+
+    errorHandler(
+      new ConflictError("An employee with this email already exists", "email"),
+      {} as Request,
+      res,
+      vi.fn(),
+    );
+
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(res.json).toHaveBeenCalledWith({
+      error: "An employee with this email already exists",
+      errors: { email: "An employee with this email already exists" },
+    });
+  });
+
   it("maps a ValidationError to 422 with the errors object", () => {
     const res = createMockRes();
 

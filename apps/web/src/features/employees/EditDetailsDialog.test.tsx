@@ -152,7 +152,10 @@ describe("Edit details dialog", () => {
     server.use(
       http.patch("/api/employees/:id", () =>
         HttpResponse.json(
-          { error: "An employee with email grace.hopper@acme.example already exists" },
+          {
+            error: "An employee with this email already exists",
+            errors: { email: "An employee with this email already exists" },
+          },
           { status: 409 },
         ),
       ),
@@ -164,10 +167,32 @@ describe("Edit details dialog", () => {
     fireEvent.click(saveButton(dialog));
 
     expect(
-      await within(dialog).findByText("An employee with email grace.hopper@acme.example already exists"),
+      await within(dialog).findByText("An employee with this email already exists"),
     ).toBeInTheDocument();
     expect(within(dialog).getByLabelText(/email/i)).toHaveAttribute("aria-invalid", "true");
     expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("shows a general error for a 409 on a field the form doesn't have", async () => {
+    server.use(
+      http.patch("/api/employees/:id", () =>
+        HttpResponse.json(
+          {
+            error: "An employee with this employee code already exists",
+            errors: { employee_code: "An employee with this employee code already exists" },
+          },
+          { status: 409 },
+        ),
+      ),
+    );
+
+    renderPage();
+    const { dialog } = await openDialog();
+    change(dialog, /email/i, "someone.else@acme.example");
+    fireEvent.click(saveButton(dialog));
+
+    expect(await within(dialog).findByText(/could not save the changes/i)).toBeInTheDocument();
+    expect(within(dialog).getByLabelText(/email/i)).not.toHaveAttribute("aria-invalid", "true");
   });
 
   it("shows 400 field errors from the server on the matching field", async () => {

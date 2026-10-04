@@ -77,13 +77,11 @@ function EditDetailsForm({ employee, onCancel, onSaved, onPendingChange }: EditD
     onSettled: () => onPendingChange(false),
     onSuccess: onSaved,
     onError: (error) => {
-      if (error instanceof ApiError && error.status === 409) {
-        setError("email", { type: "server", message: error.message }, { shouldFocus: true });
-        return;
-      }
+      // 400s carry schema errors and 409s name the conflicting field (e.g.
+      // email); both arrive as ApiError.errors keyed by body field.
       const mapped =
         error instanceof ApiError &&
-        error.status === 400 &&
+        (error.status === 400 || error.status === 409) &&
         error.errors &&
         applyServerErrors(error.errors, SERVER_FIELD_MAP, setError);
       if (!mapped) {

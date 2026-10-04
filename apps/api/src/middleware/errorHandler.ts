@@ -9,7 +9,12 @@ export class NotFoundError extends Error {
 }
 
 export class ConflictError extends Error {
-  constructor(message = "Conflict") {
+  // `field` names the request field that conflicts, so clients can show the
+  // message against it.
+  constructor(
+    message = "Conflict",
+    public readonly field?: string,
+  ) {
     super(message);
     this.name = "ConflictError";
   }
@@ -34,7 +39,13 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   }
 
   if (err instanceof ConflictError) {
-    res.status(409).json({ error: err.message });
+    res
+      .status(409)
+      .json(
+        err.field
+          ? { error: err.message, errors: { [err.field]: err.message } }
+          : { error: err.message },
+      );
     return;
   }
 

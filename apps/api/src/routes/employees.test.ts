@@ -280,6 +280,10 @@ describe("employees routes", () => {
         .send(validBody({ email: "ada.lovelace@acme.example", employee_code: "EMPDIFFERENT" }));
 
       expect(response.status).toBe(409);
+      expect(response.body).toEqual({
+        error: "An employee with this email already exists",
+        errors: { email: "An employee with this email already exists" },
+      });
     });
 
     it("returns 409 when the employee_code already exists", async () => {
@@ -288,6 +292,10 @@ describe("employees routes", () => {
         .send(validBody({ email: "unique.person@acme.example", employee_code: "EMP000001" }));
 
       expect(response.status).toBe(409);
+      expect(response.body).toEqual({
+        error: "An employee with this employee code already exists",
+        errors: { employee_code: "An employee with this employee code already exists" },
+      });
     });
 
     it("returns 400 with plain-language field errors for invalid values", async () => {
@@ -365,6 +373,10 @@ describe("employees routes", () => {
         .send({ email: "grace.hopper@acme.example" });
 
       expect(response.status).toBe(409);
+      expect(response.body).toEqual({
+        error: "An employee with this email already exists",
+        errors: { email: "An employee with this email already exists" },
+      });
     });
 
     it("returns 400 with plain-language field errors for invalid values", async () => {

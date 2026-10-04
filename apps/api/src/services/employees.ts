@@ -158,18 +158,19 @@ export async function getEmployeeDetail(
   };
 }
 
+// Conflict messages are shown to the HR user next to the named input field.
+const EMAIL_TAKEN = "An employee with this email already exists";
+
 export async function createEmployee(
   repo: EmployeeRepository,
   input: CreateEmployeeInput,
 ): Promise<EmployeeListRow> {
   if (await repo.emailExists(input.email)) {
-    throw new ConflictError(`An employee with email ${input.email} already exists`);
+    throw new ConflictError(EMAIL_TAKEN, "email");
   }
 
   if (await repo.employeeCodeExists(input.employee_code)) {
-    throw new ConflictError(
-      `An employee with employee_code ${input.employee_code} already exists`,
-    );
+    throw new ConflictError("An employee with this employee code already exists", "employee_code");
   }
 
   return repo.create(input);
@@ -187,7 +188,7 @@ export async function updateEmployee(
   }
 
   if (patch.email !== undefined && (await repo.emailExists(patch.email, id))) {
-    throw new ConflictError(`An employee with email ${patch.email} already exists`);
+    throw new ConflictError(EMAIL_TAKEN, "email");
   }
 
   return repo.update(id, patch);
