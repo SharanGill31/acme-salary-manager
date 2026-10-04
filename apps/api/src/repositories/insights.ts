@@ -1,11 +1,42 @@
-import { and, asc, count, eq, gt, lt, or, sql } from "drizzle-orm";
+import { and, asc, count, eq, gt, lt, or, sql, type SQL } from "drizzle-orm";
 import { departments, employees, exchangeRates, payBands } from "../db/schema";
 import type { Db } from "../db/types";
 import type { InsightsRepository } from "../services/insights";
 
+// Money stays exact integer minor units end to end: all arithmetic is in
+// Postgres `numeric` and every result is rounded to a whole minor unit and
+// returned as text (never float8).
+//
 // employees.salary_minor is in the employee's own currency; multiplying by
-// exchange_rates.rate_to_usd (USD per 1 unit of that currency) converts it.
-const USD_EXPR = sql`(${employees.salaryMinor}::numeric / 100) * ${exchangeRates.rateToUsd}`;
+// exchange_rates.rate_to_usd (USD per 1 unit of that currency) gives USD
+// minor units. That holds because every currency Acme pays in has 2 minor
+// digits, like USD (see COUNTRY_CURRENCIES). Each employee's USD salary is
+// rounded to a whole cent before aggregating.
+const USD_MINOR = sql`round(${employees.salaryMinor}::numeric * ${exchangeRates.rateToUsd})`;
+const LOCAL_MINOR = sql`${employees.salaryMinor}::numeric`;
+
+function sumMinor(expr: SQL) {
+  return sql<string>`coalesce(sum(${expr}), 0)::bigint::text`;
+}
+
+function avgMinor(expr: SQL) {
+  return sql<string>`round(avg(${expr}))::bigint::text`;
+}
+
+function minMinor(expr: SQL) {
+  return sql<string>`min(${expr})::bigint::text`;
+}
+
+function maxMinor(expr: SQL) {
+  return sql<string>`max(${expr})::bigint::text`;
+}
+
+// percentile_cont works in double precision; the inputs are whole minor
+// units far below 2^53, so it is exact, and its result (a whole number or a
+// half) is rounded half away from zero as numeric.
+function medianMinor(expr: SQL) {
+  return sql<string>`round((percentile_cont(0.5) within group (order by ${expr}))::numeric)::bigint::text`;
+}
 
 const OUTSIDE_BAND_CONDITION = or(
   lt(employees.salaryMinor, payBands.minMinor),
@@ -18,8 +49,8 @@ export function createInsightsRepository(db: Db): InsightsRepository {
       const [summaryRow] = await db
         .select({
           headcount: count(),
-          totalPayrollUsd: sql<number>`coalesce(sum(${USD_EXPR}), 0)::float8`,
-          medianSalaryUsd: sql<number>`coalesce(percentile_cont(0.5) within group (order by ${USD_EXPR}), 0)::float8`,
+          totalPayrollUsdMinor: sumMinor(USD_MINOR),
+          medianSalaryUsdMinor: medianMinor(USD_MINOR),
         })
         .from(employees)
         .innerJoin(exchangeRates, eq(employees.currency, exchangeRates.currency))
@@ -34,10 +65,11 @@ export function createInsightsRepository(db: Db): InsightsRepository {
         )
         .where(and(eq(employees.status, "active"), OUTSIDE_BAND_CONDITION));
 
+      // With no active employees the median is NULL, reported as zero.
       return {
         headcount: summaryRow?.headcount ?? 0,
-        totalPayrollUsd: summaryRow?.totalPayrollUsd ?? 0,
-        medianSalaryUsd: summaryRow?.medianSalaryUsd ?? 0,
+        totalPayrollUsdMinor: summaryRow?.totalPayrollUsdMinor ?? "0",
+        medianSalaryUsdMinor: summaryRow?.medianSalaryUsdMinor ?? "0",
         employeesOutsideBand: outsideRow?.value ?? 0,
       };
     },
@@ -47,9 +79,9 @@ export function createInsightsRepository(db: Db): InsightsRepository {
         .select({
           countryCode: employees.countryCode,
           headcount: count(),
-          totalPayrollUsd: sql<number>`sum(${USD_EXPR})::float8`,
-          averageSalaryUsd: sql<number>`avg(${USD_EXPR})::float8`,
-          medianSalaryUsd: sql<number>`percentile_cont(0.5) within group (order by ${USD_EXPR})::float8`,
+          totalPayrollUsdMinor: sumMinor(USD_MINOR),
+          averageSalaryUsdMinor: avgMinor(USD_MINOR),
+          medianSalaryUsdMinor: medianMinor(USD_MINOR),
         })
         .from(employees)
         .innerJoin(exchangeRates, eq(employees.currency, exchangeRates.currency))
@@ -64,9 +96,9 @@ export function createInsightsRepository(db: Db): InsightsRepository {
           departmentId: employees.departmentId,
           departmentName: departments.name,
           headcount: count(),
-          totalPayrollUsd: sql<number>`sum(${USD_EXPR})::float8`,
-          averageSalaryUsd: sql<number>`avg(${USD_EXPR})::float8`,
-          medianSalaryUsd: sql<number>`percentile_cont(0.5) within group (order by ${USD_EXPR})::float8`,
+          totalPayrollUsdMinor: sumMinor(USD_MINOR),
+          averageSalaryUsdMinor: avgMinor(USD_MINOR),
+          medianSalaryUsdMinor: medianMinor(USD_MINOR),
         })
         .from(employees)
         .innerJoin(exchangeRates, eq(employees.currency, exchangeRates.currency))
@@ -81,10 +113,10 @@ export function createInsightsRepository(db: Db): InsightsRepository {
         const rows = await db
           .select({
             level: employees.level,
-            minSalary: sql<number>`(min(${employees.salaryMinor}::numeric) / 100)::float8`,
-            medianSalary: sql<number>`(percentile_cont(0.5) within group (order by ${employees.salaryMinor}::numeric) / 100)::float8`,
-            averageSalary: sql<number>`(avg(${employees.salaryMinor}::numeric) / 100)::float8`,
-            maxSalary: sql<number>`(max(${employees.salaryMinor}::numeric) / 100)::float8`,
+            minSalaryMinor: minMinor(LOCAL_MINOR),
+            medianSalaryMinor: medianMinor(LOCAL_MINOR),
+            averageSalaryMinor: avgMinor(LOCAL_MINOR),
+            maxSalaryMinor: maxMinor(LOCAL_MINOR),
             currency: sql<string>`min(${employees.currency})`,
           })
           .from(employees)
@@ -102,10 +134,10 @@ export function createInsightsRepository(db: Db): InsightsRepository {
       const rows = await db
         .select({
           level: employees.level,
-          minSalary: sql<number>`min(${USD_EXPR})::float8`,
-          medianSalary: sql<number>`percentile_cont(0.5) within group (order by ${USD_EXPR})::float8`,
-          averageSalary: sql<number>`avg(${USD_EXPR})::float8`,
-          maxSalary: sql<number>`max(${USD_EXPR})::float8`,
+          minSalaryMinor: minMinor(USD_MINOR),
+          medianSalaryMinor: medianMinor(USD_MINOR),
+          averageSalaryMinor: avgMinor(USD_MINOR),
+          maxSalaryMinor: maxMinor(USD_MINOR),
         })
         .from(employees)
         .innerJoin(exchangeRates, eq(employees.currency, exchangeRates.currency))

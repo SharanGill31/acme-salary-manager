@@ -1,36 +1,38 @@
 import type { Level } from "shared";
 import { classifyAgainstBand, compaRatio } from "../domain/payBand";
 
+// Money fields are integer minor units as strings (USD minor units for the
+// cross-country figures), computed exactly in SQL.
 export interface SummaryResult {
   headcount: number;
-  totalPayrollUsd: number;
-  medianSalaryUsd: number;
+  totalPayrollUsdMinor: string;
+  medianSalaryUsdMinor: string;
   employeesOutsideBand: number;
 }
 
 export interface ByCountryRow {
   countryCode: string;
   headcount: number;
-  totalPayrollUsd: number;
-  averageSalaryUsd: number;
-  medianSalaryUsd: number;
+  totalPayrollUsdMinor: string;
+  averageSalaryUsdMinor: string;
+  medianSalaryUsdMinor: string;
 }
 
 export interface ByDepartmentRow {
   departmentId: number;
   departmentName: string;
   headcount: number;
-  totalPayrollUsd: number;
-  averageSalaryUsd: number;
-  medianSalaryUsd: number;
+  totalPayrollUsdMinor: string;
+  averageSalaryUsdMinor: string;
+  medianSalaryUsdMinor: string;
 }
 
 export interface ByLevelRow {
   level: Level;
-  minSalary: number;
-  medianSalary: number;
-  averageSalary: number;
-  maxSalary: number;
+  minSalaryMinor: string;
+  medianSalaryMinor: string;
+  averageSalaryMinor: string;
+  maxSalaryMinor: string;
 }
 
 export interface ByLevelResult {

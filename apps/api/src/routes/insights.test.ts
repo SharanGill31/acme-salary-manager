@@ -89,11 +89,40 @@ describe("insights routes", () => {
       expect(response.status).toBe(200);
       expect(response.body).toEqual({
         headcount: 12,
-        totalPayrollUsd: 1_122_000,
-        medianSalaryUsd: 85_000,
+        totalPayrollUsdMinor: "112200000",
+        medianSalaryUsdMinor: "8500000",
         employeesOutsideBand: 6,
       });
     });
+  });
+
+  // Money is integer minor units as strings everywhere in the API (never
+  // floats); this guards every insights endpoint at once.
+  it("returns every money amount as an integer minor-unit string", async () => {
+    const responses = await Promise.all(
+      [
+        "/api/insights/summary",
+        "/api/insights/by-country",
+        "/api/insights/by-department",
+        "/api/insights/by-level",
+        "/api/insights/by-level?countryCode=GB",
+        "/api/insights/outliers",
+      ].map((path) => request(app).get(path)),
+    );
+
+    const moneyValues: unknown[] = [];
+    function collect(value: unknown, key = ""): void {
+      if (Array.isArray(value)) value.forEach((item) => collect(item));
+      else if (value && typeof value === "object") {
+        for (const [k, v] of Object.entries(value)) collect(v, k);
+      } else if (/Minor$/.test(key)) moneyValues.push(value);
+    }
+    responses.forEach((response) => collect(response.body));
+
+    expect(moneyValues.length).toBeGreaterThan(50);
+    for (const value of moneyValues) {
+      expect(value).toEqual(expect.stringMatching(/^\d+$/));
+    }
   });
 
   describe("GET /api/insights/by-country", () => {
@@ -105,16 +134,16 @@ describe("insights routes", () => {
         {
           countryCode: "GB",
           headcount: 6,
-          totalPayrollUsd: 672_000,
-          averageSalaryUsd: 112_000,
-          medianSalaryUsd: 115_000,
+          totalPayrollUsdMinor: "67200000",
+          averageSalaryUsdMinor: "11200000",
+          medianSalaryUsdMinor: "11500000",
         },
         {
           countryCode: "US",
           headcount: 6,
-          totalPayrollUsd: 450_000,
-          averageSalaryUsd: 75_000,
-          medianSalaryUsd: 67_500,
+          totalPayrollUsdMinor: "45000000",
+          averageSalaryUsdMinor: "7500000",
+          medianSalaryUsdMinor: "6750000",
         },
       ]);
     });
@@ -134,15 +163,20 @@ describe("insights routes", () => {
         (row: { departmentName: string }) => row.departmentName === "Sales",
       );
 
-      expect(engineering.headcount).toBe(7);
-      expect(engineering.totalPayrollUsd).toBe(575_000);
-      expect(engineering.averageSalaryUsd).toBeCloseTo(82_142.857, 2);
-      expect(engineering.medianSalaryUsd).toBe(70_000);
+      // $575,000 / 7 = 8,214,285.71… cents, rounded to the nearest cent.
+      expect(engineering).toMatchObject({
+        headcount: 7,
+        totalPayrollUsdMinor: "57500000",
+        averageSalaryUsdMinor: "8214286",
+        medianSalaryUsdMinor: "7000000",
+      });
 
-      expect(sales.headcount).toBe(5);
-      expect(sales.totalPayrollUsd).toBe(547_000);
-      expect(sales.averageSalaryUsd).toBeCloseTo(109_400, 2);
-      expect(sales.medianSalaryUsd).toBe(120_000);
+      expect(sales).toMatchObject({
+        headcount: 5,
+        totalPayrollUsdMinor: "54700000",
+        averageSalaryUsdMinor: "10940000",
+        medianSalaryUsdMinor: "12000000",
+      });
     });
   });
 
@@ -153,9 +187,9 @@ describe("insights routes", () => {
       expect(response.status).toBe(200);
       expect(response.body.currency).toBe("USD");
       expect(response.body.levels).toEqual([
-        { level: "L1", minSalary: 40_000, medianSalary: 57_500, averageSalary: 58_750, maxSalary: 80_000 },
-        { level: "L2", minSalary: 50_000, medianSalary: 95_000, averageSalary: 100_500, maxSalary: 162_000 },
-        { level: "L3", minSalary: 90_000, medianSalary: 117_500, averageSalary: 121_250, maxSalary: 160_000 },
+        { level: "L1", minSalaryMinor: "4000000", medianSalaryMinor: "5750000", averageSalaryMinor: "5875000", maxSalaryMinor: "8000000" },
+        { level: "L2", minSalaryMinor: "5000000", medianSalaryMinor: "9500000", averageSalaryMinor: "10050000", maxSalaryMinor: "16200000" },
+        { level: "L3", minSalaryMinor: "9000000", medianSalaryMinor: "11750000", averageSalaryMinor: "12125000", maxSalaryMinor: "16000000" },
       ]);
     });
 
@@ -167,9 +201,9 @@ describe("insights routes", () => {
       expect(response.status).toBe(200);
       expect(response.body.currency).toBe("GBP");
       expect(response.body.levels).toEqual([
-        { level: "L1", minSalary: 20_000, medianSalary: 30_000, averageSalary: 30_000, maxSalary: 40_000 },
-        { level: "L2", minSalary: 60_000, medianSalary: 70_500, averageSalary: 70_500, maxSalary: 81_000 },
-        { level: "L3", minSalary: 55_000, medianSalary: 67_500, averageSalary: 67_500, maxSalary: 80_000 },
+        { level: "L1", minSalaryMinor: "2000000", medianSalaryMinor: "3000000", averageSalaryMinor: "3000000", maxSalaryMinor: "4000000" },
+        { level: "L2", minSalaryMinor: "6000000", medianSalaryMinor: "7050000", averageSalaryMinor: "7050000", maxSalaryMinor: "8100000" },
+        { level: "L3", minSalaryMinor: "5500000", medianSalaryMinor: "6750000", averageSalaryMinor: "6750000", maxSalaryMinor: "8000000" },
       ]);
     });
 
