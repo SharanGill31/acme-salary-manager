@@ -21,6 +21,7 @@ import { fetchEmployee } from "./employeesApi";
 import { PayBandCard } from "./PayBandCard";
 import { SalaryHistoryTable } from "./SalaryHistoryTable";
 import { SalaryChangeDialog } from "./SalaryChangeDialog";
+import { EditDetailsDialog } from "./EditDetailsDialog";
 
 interface Notice {
   severity: "success" | "warning";
@@ -93,7 +94,7 @@ function EmployeeDetails({ employee }: { employee: EmployeeListItem }) {
 export function EmployeeDetailPage() {
   const id = parseId(useParams().id);
   const queryClient = useQueryClient();
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [openDialog, setOpenDialog] = useState<"salary" | "edit" | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
 
   const employeeQuery = useQuery({
@@ -105,12 +106,22 @@ export function EmployeeDetailPage() {
   function handleSalarySaved({ warnings, ...detail }: RecordSalaryChangeResponse) {
     queryClient.setQueryData(["employee", id], detail);
     void queryClient.invalidateQueries({ queryKey: ["employees"] });
-    setDialogOpen(false);
+    setOpenDialog(null);
     setNotice(
       warnings.length > 0
         ? { severity: "warning", message: `Salary change recorded. ${warnings.join(" ")}` }
         : { severity: "success", message: "Salary change recorded" },
     );
+  }
+
+  // PATCH returns only the employee row, and a level change moves the pay
+  // band and compa-ratio, so refetch the full profile rather than patching
+  // the cache.
+  function handleDetailsSaved() {
+    void queryClient.invalidateQueries({ queryKey: ["employee", id] });
+    void queryClient.invalidateQueries({ queryKey: ["employees"] });
+    setOpenDialog(null);
+    setNotice({ severity: "success", message: "Details updated" });
   }
 
   if (id === null) return <NotFound />;
@@ -160,9 +171,14 @@ export function EmployeeDetailPage() {
           {employee.fullName}
         </Typography>
         {employee.status === "inactive" && <Chip label="Inactive" size="small" />}
-        <Button variant="contained" onClick={() => setDialogOpen(true)} sx={{ ml: "auto" }}>
-          Change salary
-        </Button>
+        <Stack direction="row" spacing={1} sx={{ ml: "auto" }}>
+          <Button variant="outlined" onClick={() => setOpenDialog("edit")}>
+            Edit details
+          </Button>
+          <Button variant="contained" onClick={() => setOpenDialog("salary")}>
+            Change salary
+          </Button>
+        </Stack>
       </Box>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         {employee.jobTitle} · {employee.departmentName}
@@ -177,10 +193,17 @@ export function EmployeeDetailPage() {
       </Stack>
 
       <SalaryChangeDialog
-        open={dialogOpen}
+        open={openDialog === "salary"}
         employee={employee}
-        onClose={() => setDialogOpen(false)}
+        onClose={() => setOpenDialog(null)}
         onSaved={handleSalarySaved}
+      />
+
+      <EditDetailsDialog
+        open={openDialog === "edit"}
+        employee={employee}
+        onClose={() => setOpenDialog(null)}
+        onSaved={handleDetailsSaved}
       />
 
       {notice && (
