@@ -98,6 +98,38 @@ describe("Edit details dialog", () => {
     expect(called).toBe(false);
   });
 
+  it("moves focus to the first invalid field", async () => {
+    renderPage();
+    const { dialog } = await openDialog();
+    change(dialog, /job title/i, "");
+    fireEvent.click(saveButton(dialog));
+
+    await within(dialog).findByText("Enter a job title");
+    await waitFor(() => expect(within(dialog).getByLabelText(/job title/i)).toHaveFocus());
+  });
+
+  it("moves focus to the email field on a 409 email conflict", async () => {
+    server.use(
+      http.patch("/api/employees/:id", () =>
+        HttpResponse.json(
+          {
+            error: "An employee with this email already exists",
+            errors: { email: "An employee with this email already exists" },
+          },
+          { status: 409 },
+        ),
+      ),
+    );
+
+    renderPage();
+    const { dialog } = await openDialog();
+    change(dialog, /email/i, "grace.hopper@acme.example");
+    fireEvent.click(saveButton(dialog));
+
+    await within(dialog).findByText("An employee with this email already exists");
+    await waitFor(() => expect(within(dialog).getByLabelText(/email/i)).toHaveFocus());
+  });
+
   it("sends only the fields that changed", async () => {
     let body: unknown;
     server.use(

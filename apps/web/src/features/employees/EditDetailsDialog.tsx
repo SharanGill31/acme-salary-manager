@@ -111,10 +111,10 @@ function EditDetailsForm({ employee, onCancel, onSaved, onPendingChange }: EditD
           <Controller
             name="full_name"
             control={control}
-            render={({ field, fieldState }) => (
+            render={({ field: { ref, ...field }, fieldState }) => (
               <TextField
                 {...field}
-                inputRef={field.ref}
+                inputRef={ref}
                 label="Full name"
                 required
                 autoFocus
@@ -127,10 +127,10 @@ function EditDetailsForm({ employee, onCancel, onSaved, onPendingChange }: EditD
           <Controller
             name="email"
             control={control}
-            render={({ field, fieldState }) => (
+            render={({ field: { ref, ...field }, fieldState }) => (
               <TextField
                 {...field}
-                inputRef={field.ref}
+                inputRef={ref}
                 label="Email"
                 type="email"
                 required
@@ -143,10 +143,10 @@ function EditDetailsForm({ employee, onCancel, onSaved, onPendingChange }: EditD
           <Controller
             name="job_title"
             control={control}
-            render={({ field, fieldState }) => (
+            render={({ field: { ref, ...field }, fieldState }) => (
               <TextField
                 {...field}
-                inputRef={field.ref}
+                inputRef={ref}
                 label="Job title"
                 required
                 error={Boolean(fieldState.error)}
@@ -158,10 +158,10 @@ function EditDetailsForm({ employee, onCancel, onSaved, onPendingChange }: EditD
           <Controller
             name="department_id"
             control={control}
-            render={({ field, fieldState }) => (
+            render={({ field: { ref, ...field }, fieldState }) => (
               <TextField
                 {...field}
-                inputRef={field.ref}
+                inputRef={ref}
                 onChange={(event) => field.onChange(Number(event.target.value))}
                 select
                 label="Department"
@@ -182,10 +182,10 @@ function EditDetailsForm({ employee, onCancel, onSaved, onPendingChange }: EditD
           <Controller
             name="level"
             control={control}
-            render={({ field, fieldState }) => (
+            render={({ field: { ref, ...field }, fieldState }) => (
               <TextField
                 {...field}
-                inputRef={field.ref}
+                inputRef={ref}
                 select
                 label="Level"
                 required

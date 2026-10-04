@@ -231,6 +231,30 @@ describe("Salary change dialog", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
+  it("moves focus to the first field with a server error", async () => {
+    server.use(
+      http.post("/api/employees/:id/salary-changes", () =>
+        HttpResponse.json(
+          {
+            errors: {
+              effectiveDate: "Effective date can't be before the hire date",
+              reason: "Reason must be at least 3 characters",
+            },
+          },
+          { status: 422 },
+        ),
+      ),
+    );
+
+    renderPage();
+    const { dialog } = await openDialog();
+    fillForm(dialog, { amount: "95,000", date: "2019-01-01", reason: "ok" });
+    submit(dialog);
+
+    await within(dialog).findByText(/before the hire date/i);
+    await waitFor(() => expect(within(dialog).getByLabelText(/effective date/i)).toHaveFocus());
+  });
+
   it("shows a general error in the dialog when saving fails unexpectedly", async () => {
     server.use(
       http.post("/api/employees/:id/salary-changes", () =>

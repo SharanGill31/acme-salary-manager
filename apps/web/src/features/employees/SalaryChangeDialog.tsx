@@ -108,10 +108,10 @@ function SalaryChangeForm({ employee, onCancel, onSaved, onPendingChange }: Sala
                 parseMoneyToMinor(value, employee.currency) !== null ||
                 `Enter an amount like ${amountExample(employee.currency)}`,
             }}
-            render={({ field, fieldState }) => (
+            render={({ field: { ref, ...field }, fieldState }) => (
               <TextField
                 {...field}
-                inputRef={field.ref}
+                inputRef={ref}
                 label="New annual salary"
                 required
                 autoFocus
@@ -131,10 +131,10 @@ function SalaryChangeForm({ employee, onCancel, onSaved, onPendingChange }: Sala
             name="effectiveDate"
             control={control}
             rules={{ required: "Enter the effective date" }}
-            render={({ field, fieldState }) => (
+            render={({ field: { ref, ...field }, fieldState }) => (
               <TextField
                 {...field}
-                inputRef={field.ref}
+                inputRef={ref}
                 label="Effective date"
                 type="date"
                 required
@@ -149,10 +149,10 @@ function SalaryChangeForm({ employee, onCancel, onSaved, onPendingChange }: Sala
             name="reason"
             control={control}
             rules={{ validate: (value) => value.trim().length > 0 || "Enter a reason" }}
-            render={({ field, fieldState }) => (
+            render={({ field: { ref, ...field }, fieldState }) => (
               <TextField
                 {...field}
-                inputRef={field.ref}
+                inputRef={ref}
                 label="Reason"
                 required
                 multiline
