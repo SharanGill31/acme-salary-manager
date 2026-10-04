@@ -109,7 +109,7 @@ describe("recordSalaryChange", () => {
       SAMPLE_EMPLOYEE,
       { ...VALID_INPUT, newAmountMinor: 0 },
       "newAmountMinor",
-      /positive/i,
+      /greater than zero/i,
     );
   });
 

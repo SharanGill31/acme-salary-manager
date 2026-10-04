@@ -21,8 +21,8 @@ describe("validateSalaryChange", () => {
 
     expect(zero.ok).toBe(false);
     expect(negative.ok).toBe(false);
-    if (!zero.ok) expect(zero.errors.newAmountMinor).toMatch(/positive/i);
-    if (!negative.ok) expect(negative.errors.newAmountMinor).toMatch(/positive/i);
+    if (!zero.ok) expect(zero.errors.newAmountMinor).toMatch(/greater than zero/i);
+    if (!negative.ok) expect(negative.errors.newAmountMinor).toMatch(/greater than zero/i);
   });
 
   it("rejects a currency that does not match the employee's currency", () => {
@@ -94,5 +94,53 @@ describe("validateSalaryChange", () => {
       expect(result.warnings.length).toBeGreaterThan(0);
       expect(result.warnings[0]).toMatch(/50/);
     }
+  });
+
+  describe("messages are written for the HR user", () => {
+    function errorsFor(overrides: Partial<ReturnType<typeof baseInput>>) {
+      const result = validateSalaryChange({ ...baseInput(), ...overrides });
+      if (result.ok) throw new Error("expected validation to fail");
+      return result.errors;
+    }
+
+    it("uses plain-language error messages", () => {
+      expect(errorsFor({ newAmountMinor: 0n }).newAmountMinor).toBe(
+        "New salary must be greater than zero",
+      );
+      expect(errorsFor({ newAmountMinor: 500_000n }).newAmountMinor).toBe(
+        "New salary must be different from the current salary",
+      );
+      expect(errorsFor({ currency: "EUR" }).currency).toBe(
+        "Currency must be the employee's currency (USD)",
+      );
+      expect(errorsFor({ effectiveDate: new Date("2019-01-01") }).effectiveDate).toBe(
+        "Effective date can't be before the hire date",
+      );
+      expect(errorsFor({ effectiveDate: new Date("2027-03-01") }).effectiveDate).toBe(
+        "Effective date can't be more than 12 months from today",
+      );
+      expect(errorsFor({ reason: "ok" }).reason).toBe("Reason must be at least 3 characters");
+    });
+
+    it("never exposes code identifiers in error messages", () => {
+      const errors = errorsFor({
+        newAmountMinor: 0n,
+        currency: "EUR",
+        effectiveDate: new Date("2019-01-01"),
+        reason: "ok",
+      });
+
+      for (const message of Object.values(errors)) {
+        expect(message).not.toMatch(/newAmountMinor|effectiveDate|employeeCurrency|^reason|^currency/);
+      }
+    });
+
+    it("uses a plain-language large-change warning", () => {
+      const result = validateSalaryChange({ ...baseInput(), newAmountMinor: 800_000n });
+
+      expect(result.ok && result.warnings).toEqual([
+        "This change is more than 50% different from the current salary",
+      ]);
+    });
   });
 });

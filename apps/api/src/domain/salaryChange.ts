@@ -26,23 +26,23 @@ export function validateSalaryChange(input: SalaryChangeInput): SalaryChangeVali
   const errors: Record<string, string> = {};
 
   if (input.newAmountMinor <= 0n) {
-    errors.newAmountMinor = "newAmountMinor must be a positive amount";
+    errors.newAmountMinor = "New salary must be greater than zero";
   } else if (input.newAmountMinor === input.currentAmountMinor) {
-    errors.newAmountMinor = "newAmountMinor must differ from the current amount";
+    errors.newAmountMinor = "New salary must be different from the current salary";
   }
 
   if (input.currency !== input.employeeCurrency) {
-    errors.currency = `currency must match the employee's currency (${input.employeeCurrency})`;
+    errors.currency = `Currency must be the employee's currency (${input.employeeCurrency})`;
   }
 
   if (input.effectiveDate.getTime() < input.hireDate.getTime()) {
-    errors.effectiveDate = "effectiveDate must not be before the hire date";
+    errors.effectiveDate = "Effective date can't be before the hire date";
   } else if (input.effectiveDate.getTime() > addMonths(input.today, MAX_MONTHS_AHEAD).getTime()) {
-    errors.effectiveDate = `effectiveDate must not be more than ${MAX_MONTHS_AHEAD} months after today`;
+    errors.effectiveDate = `Effective date can't be more than ${MAX_MONTHS_AHEAD} months from today`;
   }
 
   if (input.reason.trim().length < 3) {
-    errors.reason = "reason must be at least 3 characters";
+    errors.reason = "Reason must be at least 3 characters";
   }
 
   if (Object.keys(errors).length > 0) {
@@ -57,7 +57,7 @@ export function validateSalaryChange(input: SalaryChangeInput): SalaryChangeVali
 
   if (changePercent > WARNING_THRESHOLD_PERCENT) {
     warnings.push(
-      `This change is more than ${WARNING_THRESHOLD_PERCENT} percent different from the current amount`,
+      `This change is more than ${WARNING_THRESHOLD_PERCENT}% different from the current salary`,
     );
   }
 

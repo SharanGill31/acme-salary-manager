@@ -55,7 +55,7 @@ describe("errorHandler", () => {
     const res = createMockRes();
 
     errorHandler(
-      new ValidationError({ reason: "reason must be at least 3 characters" }),
+      new ValidationError({ reason: "Reason must be at least 3 characters" }),
       {} as Request,
       res,
       vi.fn(),
@@ -64,7 +64,7 @@ describe("errorHandler", () => {
     expect(res.status).toHaveBeenCalledWith(422);
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
-        errors: { reason: "reason must be at least 3 characters" },
+        errors: { reason: "Reason must be at least 3 characters" },
       }),
     );
   });

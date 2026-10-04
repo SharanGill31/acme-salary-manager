@@ -183,7 +183,7 @@ describe("Salary change dialog", () => {
         HttpResponse.json(
           {
             ...UPDATED_DETAIL,
-            warnings: ["This change is more than 50 percent different from the current amount"],
+            warnings: ["This change is more than 50% different from the current salary"],
           },
           { status: 201 },
         ),
@@ -196,7 +196,7 @@ describe("Salary change dialog", () => {
     submit(dialog);
 
     expect(
-      await screen.findByText(/more than 50 percent different/i),
+      await screen.findByText(/more than 50% different/i),
     ).toBeInTheDocument();
   });
 
@@ -206,9 +206,9 @@ describe("Salary change dialog", () => {
         HttpResponse.json(
           {
             errors: {
-              newAmountMinor: "newAmountMinor must differ from the current amount",
-              effectiveDate: "effectiveDate must not be before the hire date",
-              reason: "reason must be at least 3 characters",
+              newAmountMinor: "New salary must be different from the current salary",
+              effectiveDate: "Effective date can't be before the hire date",
+              reason: "Reason must be at least 3 characters",
             },
           },
           { status: 422 },
@@ -221,7 +221,7 @@ describe("Salary change dialog", () => {
     fillForm(dialog, { amount: "90,000", date: "2019-01-01", reason: "ok" });
     submit(dialog);
 
-    expect(await within(dialog).findByText(/must differ from the current amount/i)).toBeInTheDocument();
+    expect(await within(dialog).findByText(/must be different from the current salary/i)).toBeInTheDocument();
     expect(within(dialog).getByLabelText(/new annual salary/i)).toHaveAttribute("aria-invalid", "true");
     expect(within(dialog).getByLabelText(/effective date/i)).toHaveAttribute("aria-invalid", "true");
     expect(within(dialog).getByLabelText(/reason/i)).toHaveAttribute("aria-invalid", "true");

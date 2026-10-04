@@ -86,7 +86,7 @@ describe("recordSalaryChange", () => {
     server.use(
       http.post("/api/employees/:id/salary-changes", () =>
         HttpResponse.json(
-          { errors: { reason: "reason must be at least 3 characters" } },
+          { errors: { reason: "Reason must be at least 3 characters" } },
           { status: 422 },
         ),
       ),
@@ -101,7 +101,7 @@ describe("recordSalaryChange", () => {
       }),
     ).rejects.toMatchObject({
       status: 422,
-      errors: { reason: "reason must be at least 3 characters" },
+      errors: { reason: "Reason must be at least 3 characters" },
     });
   });
 });
