@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildEmployeesCsv, type EmployeeCsvRow } from "./employeesCsv";
 
-const BOM = "﻿";
+const BOM = "\uFEFF";
 const HEADER =
   "Employee code,Full name,Email,Country,Department,Job title,Level,Status,Hire date,Annual salary,Currency";
 

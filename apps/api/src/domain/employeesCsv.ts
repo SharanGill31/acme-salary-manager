@@ -29,7 +29,7 @@ const HEADER = [
 ];
 
 // Excel needs the byte-order mark to read the file as UTF-8 (accented names).
-const BOM = "﻿";
+const BOM = "\uFEFF";
 // RFC 4180 line ending.
 const CRLF = "\r\n";
 
