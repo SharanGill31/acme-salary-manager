@@ -289,6 +289,56 @@ describe("employees routes", () => {
 
       expect(response.status).toBe(409);
     });
+
+    it("returns 400 with plain-language field errors for invalid values", async () => {
+      const response = await request(app)
+        .post("/api/employees")
+        .send(
+          validBody({
+            full_name: "   ",
+            email: "not-an-email",
+            employee_code: "",
+            country_code: "usa",
+            department_id: 0,
+            job_title: "",
+            level: "L9",
+            hire_date: "not-a-date",
+            salary_minor: 0,
+          }),
+        );
+
+      expect(response.status).toBe(400);
+      expect(response.body.fieldErrors).toEqual({
+        full_name: ["Enter a full name"],
+        email: ["Enter a valid email address"],
+        employee_code: ["Enter an employee code"],
+        country_code: ["Choose a country"],
+        department_id: ["Choose a department"],
+        job_title: ["Enter a job title"],
+        level: ["Choose a level"],
+        hire_date: ["Enter a hire date"],
+        salary_minor: ["Enter a salary greater than zero"],
+      });
+    });
+
+    it("returns the same plain-language messages when fields are missing", async () => {
+      const response = await request(app)
+        .post("/api/employees")
+        .send({ currency: "USD", status: "active" });
+
+      expect(response.status).toBe(400);
+      expect(response.body.fieldErrors).toEqual({
+        full_name: ["Enter a full name"],
+        email: ["Enter a valid email address"],
+        employee_code: ["Enter an employee code"],
+        country_code: ["Choose a country"],
+        department_id: ["Choose a department"],
+        job_title: ["Enter a job title"],
+        level: ["Choose a level"],
+        hire_date: ["Enter a hire date"],
+        salary_minor: ["Enter a salary greater than zero"],
+      });
+    });
   });
 
   describe("PATCH /api/employees/:id", () => {

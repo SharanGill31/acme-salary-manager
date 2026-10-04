@@ -61,41 +61,50 @@ export const employeeListResponseSchema = z.object({
 
 export type EmployeeListResponse = z.infer<typeof employeeListResponseSchema>;
 
-export const createEmployeeSchema = z.object({
-  full_name: z.string().trim().min(1),
-  email: z.string().email(),
-  employee_code: z.string().trim().min(1),
-  country_code: z
-    .string()
-    .regex(/^[A-Z]{2}$/, "country_code must be two uppercase letters"),
-  department_id: z.number().int().positive(),
-  job_title: z.string().trim().min(1),
-  level: z.enum(LEVELS),
-  hire_date: z.coerce.date(),
-  salary_minor: z.number().int().positive(),
+// Each employee field's rules, defined once and shared by the create and
+// update schemas. Messages are shown to the HR user as-is (the add and edit
+// forms validate with these schemas), so they are written in plain language.
+// Passing the message as `error` too means a missing or wrong-type value gets
+// the same message as an invalid one.
+function requiredText(message: string) {
+  return z.string({ error: message }).trim().min(1, message);
+}
+
+function positiveInt(message: string) {
+  return z.number({ error: message }).int(message).positive(message);
+}
+
+const VALID_EMAIL = "Enter a valid email address";
+const CHOOSE_COUNTRY = "Choose a country";
+
+const employeeFields = {
+  full_name: requiredText("Enter a full name"),
+  email: z.string({ error: VALID_EMAIL }).email(VALID_EMAIL),
+  employee_code: requiredText("Enter an employee code"),
+  country_code: z.string({ error: CHOOSE_COUNTRY }).regex(/^[A-Z]{2}$/, CHOOSE_COUNTRY),
+  department_id: positiveInt("Choose a department"),
+  job_title: requiredText("Enter a job title"),
+  level: z.enum(LEVELS, { error: "Choose a level" }),
+  hire_date: z.coerce.date({ error: "Enter a hire date" }),
+  salary_minor: positiveInt("Enter a salary greater than zero"),
   currency: z.string().regex(/^[A-Z]{3}$/, "currency must be three uppercase letters"),
   status: z.enum(EMPLOYEE_STATUSES),
-});
+};
+
+export const createEmployeeSchema = z.object(employeeFields);
 
 export type CreateEmployeeInput = z.infer<typeof createEmployeeSchema>;
 
-// Messages are shown to the HR user as-is (the edit form validates with this
-// same schema), so they are written in plain language.
-const CHOOSE_DEPARTMENT = "Choose a department";
-
 export const updateEmployeeSchema = z
   .object({
-    full_name: z.string().trim().min(1, "Enter a full name").optional(),
-    email: z.string().email("Enter a valid email address").optional(),
-    department_id: z
-      .number({ error: CHOOSE_DEPARTMENT })
-      .int(CHOOSE_DEPARTMENT)
-      .positive(CHOOSE_DEPARTMENT)
-      .optional(),
-    job_title: z.string().trim().min(1, "Enter a job title").optional(),
-    level: z.enum(LEVELS, { error: "Choose a level" }).optional(),
-    status: z.enum(EMPLOYEE_STATUSES).optional(),
+    full_name: employeeFields.full_name,
+    email: employeeFields.email,
+    department_id: employeeFields.department_id,
+    job_title: employeeFields.job_title,
+    level: employeeFields.level,
+    status: employeeFields.status,
   })
+  .partial()
   .refine((data) => Object.keys(data).length > 0, {
     message: "At least one field must be provided",
   });
