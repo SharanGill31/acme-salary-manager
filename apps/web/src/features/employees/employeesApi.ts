@@ -1,7 +1,9 @@
 import type {
   EmployeeDetailResponse,
+  EmployeeListItem,
   EmployeeListResponse,
   RecordSalaryChangeResponse,
+  UpdateEmployeeInput,
 } from "shared";
 import { api } from "../../lib/api";
 
@@ -21,6 +23,10 @@ export function fetchEmployees(params: URLSearchParams): Promise<EmployeeListRes
 
 export function fetchEmployee(id: number): Promise<EmployeeDetailResponse> {
   return api.get<EmployeeDetailResponse>(`/employees/${id}`);
+}
+
+export function updateEmployee(id: number, patch: UpdateEmployeeInput): Promise<EmployeeListItem> {
+  return api.patch<EmployeeListItem>(`/employees/${id}`, patch);
 }
 
 export function recordSalaryChange(

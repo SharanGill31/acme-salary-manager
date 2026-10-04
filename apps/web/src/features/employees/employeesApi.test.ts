@@ -3,7 +3,7 @@ import { http, HttpResponse } from "msw";
 import { server } from "../../mocks/server";
 import { DEFAULT_EMPLOYEE_DETAIL } from "../../mocks/handlers";
 import { ApiError } from "../../lib/api";
-import { fetchEmployee, recordSalaryChange } from "./employeesApi";
+import { fetchEmployee, recordSalaryChange, updateEmployee } from "./employeesApi";
 
 describe("fetchEmployee", () => {
   it("returns the employee detail for the given id", async () => {
@@ -22,6 +22,46 @@ describe("fetchEmployee", () => {
     await expect(fetchEmployee(999)).rejects.toMatchObject({
       constructor: ApiError,
       status: 404,
+    });
+  });
+});
+
+describe("updateEmployee", () => {
+  it("sends a PATCH with only the given fields and returns the updated employee", async () => {
+    let method: string | undefined;
+    let receivedId: string | readonly string[] | undefined;
+    let receivedBody: unknown;
+    server.use(
+      http.patch("/api/employees/:id", async ({ request, params }) => {
+        method = request.method;
+        receivedId = params.id;
+        receivedBody = await request.json();
+        return HttpResponse.json({ ...DEFAULT_EMPLOYEE_DETAIL.employee, jobTitle: "Staff Engineer" });
+      }),
+    );
+
+    const result = await updateEmployee(1, { job_title: "Staff Engineer" });
+
+    expect(method).toBe("PATCH");
+    expect(receivedId).toBe("1");
+    expect(receivedBody).toEqual({ job_title: "Staff Engineer" });
+    expect(result.jobTitle).toBe("Staff Engineer");
+  });
+
+  it("surfaces a 409 conflict as an ApiError with the server message", async () => {
+    server.use(
+      http.patch("/api/employees/:id", () =>
+        HttpResponse.json(
+          { error: "An employee with email grace.hopper@acme.example already exists" },
+          { status: 409 },
+        ),
+      ),
+    );
+
+    await expect(updateEmployee(1, { email: "grace.hopper@acme.example" })).rejects.toMatchObject({
+      constructor: ApiError,
+      status: 409,
+      message: "An employee with email grace.hopper@acme.example already exists",
     });
   });
 });

@@ -78,6 +78,7 @@ export const handlers = [
   http.get("/api/meta", () => HttpResponse.json(DEFAULT_META)),
   http.get("/api/employees", () => HttpResponse.json(employeesResponse(DEFAULT_EMPLOYEES))),
   http.get("/api/employees/:id", () => HttpResponse.json(DEFAULT_EMPLOYEE_DETAIL)),
+  http.patch("/api/employees/:id", () => HttpResponse.json(DEFAULT_EMPLOYEE_DETAIL.employee)),
   http.post("/api/employees/:id/salary-changes", () =>
     HttpResponse.json({ ...DEFAULT_EMPLOYEE_DETAIL, warnings: [] }, { status: 201 }),
   ),
