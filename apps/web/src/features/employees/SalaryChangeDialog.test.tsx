@@ -248,6 +248,23 @@ describe("Salary change dialog", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
+  it("shows a general error when a 422 response carries no field errors", async () => {
+    server.use(
+      http.post("/api/employees/:id/salary-changes", () =>
+        HttpResponse.json({ errors: {} }, { status: 422 }),
+      ),
+    );
+
+    renderPage();
+    const { dialog } = await openDialog();
+    fillForm(dialog, VALID);
+    submit(dialog);
+
+    expect(
+      await within(dialog).findByText(/could not save the salary change/i),
+    ).toBeInTheDocument();
+  });
+
   it("closes on Escape and returns focus to the Change salary button", async () => {
     renderPage();
     const { button, dialog } = await openDialog();

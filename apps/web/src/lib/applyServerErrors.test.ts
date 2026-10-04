@@ -49,6 +49,13 @@ describe("applyServerErrors", () => {
     expect(setError).toHaveBeenCalledWith("reason", expect.anything(), { shouldFocus: true });
   });
 
+  it("returns false when there are no server errors to place", () => {
+    const setError = fakeSetError();
+
+    expect(applyServerErrors({}, FIELD_MAP, setError)).toBe(false);
+    expect(setError).not.toHaveBeenCalled();
+  });
+
   it("returns false when any server error has no matching field", () => {
     const setError = fakeSetError();
 
