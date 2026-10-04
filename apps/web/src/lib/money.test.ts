@@ -26,6 +26,16 @@ describe("formatCurrency", () => {
   it("is exact beyond the float-safe integer range", () => {
     expect(formatCurrency("900719925474099312", "USD")).toBe("$9,007,199,254,740,993.12");
   });
+
+  it("rounds to whole units, half away from zero, when asked", () => {
+    expect(formatCurrency("98765432100", "USD", { wholeUnits: true })).toBe("$987,654,321");
+    expect(formatCurrency("12575050", "USD", { wholeUnits: true })).toBe("$125,751");
+    expect(formatCurrency("12575049", "USD", { wholeUnits: true })).toBe("$125,750");
+    expect(formatCurrency("900719925474099350", "USD", { wholeUnits: true })).toBe(
+      "$9,007,199,254,740,994",
+    );
+    expect(formatCurrency("12345", "JPY", { wholeUnits: true })).toBe("¥12,345");
+  });
 });
 
 describe("parseMoneyToMinor", () => {

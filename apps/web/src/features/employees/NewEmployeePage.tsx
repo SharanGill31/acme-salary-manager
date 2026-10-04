@@ -17,6 +17,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { COUNTRY_CURRENCIES, LEVELS, createEmployeeSchema } from "shared";
 import { ApiError } from "../../lib/api";
 import { applyServerErrors } from "../../lib/applyServerErrors";
+import { countryName } from "../../lib/countryName";
 import { currencyMinorDigits, parseMoneyToMinor } from "../../lib/money";
 import { useMetaQuery } from "../../lib/useMetaQuery";
 import { createEmployee } from "./employeesApi";
@@ -52,8 +53,6 @@ const SERVER_FIELD_MAP: Record<string, keyof FormValues> = {
 };
 
 const SALARY_GREATER_THAN_ZERO = "Enter a salary greater than zero";
-
-const regionNames = new Intl.DisplayNames("en", { type: "region" });
 
 function currencyFor(countryCode: string): string | undefined {
   return COUNTRY_CURRENCIES.find((entry) => entry.countryCode === countryCode)?.currency;
@@ -241,7 +240,7 @@ export function NewEmployeePage() {
                 <option value="">Choose a country</option>
                 {COUNTRY_CURRENCIES.map((entry) => (
                   <option key={entry.countryCode} value={entry.countryCode}>
-                    {`${regionNames.of(entry.countryCode)} (${entry.currency})`}
+                    {`${countryName(entry.countryCode)} (${entry.currency})`}
                   </option>
                 ))}
               </TextField>

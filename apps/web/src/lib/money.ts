@@ -22,11 +22,24 @@ function minorToDecimalString(amountMinor: string, digits: number): `${number}` 
   return `${sign}${major}.${fraction}` as `${number}`;
 }
 
-export function formatCurrency(amountMinor: string, currency: string): string {
+interface FormatCurrencyOptions {
+  // Round to whole units (e.g. "$125,751") for aggregates such as totals and
+  // medians. Intl rounds the exact decimal string half away from zero, so
+  // there is still no float involved.
+  wholeUnits?: boolean;
+}
+
+export function formatCurrency(
+  amountMinor: string,
+  currency: string,
+  options: FormatCurrencyOptions = {},
+): string {
   const digits = currencyMinorDigits(currency);
-  return new Intl.NumberFormat(LOCALE, { style: "currency", currency }).format(
-    minorToDecimalString(amountMinor, digits),
-  );
+  return new Intl.NumberFormat(LOCALE, {
+    style: "currency",
+    currency,
+    ...(options.wholeUnits ? { minimumFractionDigits: 0, maximumFractionDigits: 0 } : {}),
+  }).format(minorToDecimalString(amountMinor, digits));
 }
 
 /**
