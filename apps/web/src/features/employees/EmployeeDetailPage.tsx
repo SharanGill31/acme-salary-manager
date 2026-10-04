@@ -1,13 +1,31 @@
-import { Alert, Box, Button, Chip, Link, Paper, Skeleton, Stack, Typography } from "@mui/material";
+import { useState } from "react";
+import {
+  Alert,
+  Box,
+  Button,
+  Chip,
+  Link,
+  Paper,
+  Skeleton,
+  Snackbar,
+  Stack,
+  Typography,
+} from "@mui/material";
 import { Link as RouterLink, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import type { EmployeeListItem } from "shared";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { EmployeeListItem, RecordSalaryChangeResponse } from "shared";
 import { ApiError } from "../../lib/api";
 import { formatCurrency } from "../../lib/money";
 import { formatDate } from "../../lib/formatDate";
 import { fetchEmployee } from "./employeesApi";
 import { PayBandCard } from "./PayBandCard";
 import { SalaryHistoryTable } from "./SalaryHistoryTable";
+import { SalaryChangeDialog } from "./SalaryChangeDialog";
+
+interface Notice {
+  severity: "success" | "warning";
+  message: string;
+}
 
 function parseId(raw: string | undefined): number | null {
   if (!raw || !/^\d+$/.test(raw)) return null;
@@ -74,12 +92,26 @@ function EmployeeDetails({ employee }: { employee: EmployeeListItem }) {
 
 export function EmployeeDetailPage() {
   const id = parseId(useParams().id);
+  const queryClient = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [notice, setNotice] = useState<Notice | null>(null);
 
   const employeeQuery = useQuery({
     queryKey: ["employee", id],
     queryFn: () => fetchEmployee(id as number),
     enabled: id !== null,
   });
+
+  function handleSalarySaved({ warnings, ...detail }: RecordSalaryChangeResponse) {
+    queryClient.setQueryData(["employee", id], detail);
+    void queryClient.invalidateQueries({ queryKey: ["employees"] });
+    setDialogOpen(false);
+    setNotice(
+      warnings.length > 0
+        ? { severity: "warning", message: `Salary change recorded. ${warnings.join(" ")}` }
+        : { severity: "success", message: "Salary change recorded" },
+    );
+  }
 
   if (id === null) return <NotFound />;
 
@@ -123,11 +155,14 @@ export function EmployeeDetailPage() {
   return (
     <Box>
       <BackLink />
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 0.5 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 0.5, flexWrap: "wrap" }}>
         <Typography variant="h4" component="h1">
           {employee.fullName}
         </Typography>
         {employee.status === "inactive" && <Chip label="Inactive" size="small" />}
+        <Button variant="contained" onClick={() => setDialogOpen(true)} sx={{ ml: "auto" }}>
+          Change salary
+        </Button>
       </Box>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         {employee.jobTitle} · {employee.departmentName}
@@ -140,6 +175,28 @@ export function EmployeeDetailPage() {
         </Box>
         <SalaryHistoryTable history={detail.salaryHistory} />
       </Stack>
+
+      <SalaryChangeDialog
+        open={dialogOpen}
+        employee={employee}
+        onClose={() => setDialogOpen(false)}
+        onSaved={handleSalarySaved}
+      />
+
+      {notice && (
+        <Snackbar
+          open
+          // Warnings stay until dismissed so they can't be missed.
+          autoHideDuration={notice.severity === "warning" ? null : 6000}
+          onClose={(_event, reason) => {
+            if (reason !== "clickaway") setNotice(null);
+          }}
+        >
+          <Alert severity={notice.severity} onClose={() => setNotice(null)} variant="filled">
+            {notice.message}
+          </Alert>
+        </Snackbar>
+      )}
     </Box>
   );
 }

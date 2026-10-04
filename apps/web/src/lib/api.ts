@@ -18,8 +18,18 @@ export class ApiError extends Error implements ApiErrorPayload {
 
 interface ErrorResponseBody {
   error?: string;
-  fieldErrors?: Record<string, string>;
+  // 400s carry Zod's flattened fieldErrors (arrays of messages); 422s carry
+  // one message per field.
+  fieldErrors?: Record<string, string[] | undefined>;
   errors?: Record<string, string>;
+}
+
+function firstMessages(fieldErrors: Record<string, string[] | undefined>): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const [field, messages] of Object.entries(fieldErrors)) {
+    if (messages?.[0]) result[field] = messages[0];
+  }
+  return result;
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -39,7 +49,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError({
       status: response.status,
       message: errorBody?.error ?? "Request failed",
-      errors: errorBody?.fieldErrors ?? errorBody?.errors,
+      errors: errorBody?.fieldErrors ? firstMessages(errorBody.fieldErrors) : errorBody?.errors,
     });
   }
 

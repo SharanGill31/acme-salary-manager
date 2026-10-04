@@ -56,6 +56,32 @@ describe("recordSalaryChange", () => {
     expect(result.employee.id).toBe(1);
   });
 
+  it("surfaces the first message of each 400 fieldErrors array on the ApiError", async () => {
+    server.use(
+      http.post("/api/employees/:id/salary-changes", () =>
+        HttpResponse.json(
+          {
+            error: "Invalid request",
+            fieldErrors: { effective_date: ["Invalid date", "Another message"] },
+          },
+          { status: 400 },
+        ),
+      ),
+    );
+
+    await expect(
+      recordSalaryChange(1, {
+        new_amount_minor: 9500000,
+        currency: "USD",
+        effective_date: "not-a-date",
+        reason: "Annual review",
+      }),
+    ).rejects.toMatchObject({
+      status: 400,
+      errors: { effective_date: "Invalid date" },
+    });
+  });
+
   it("surfaces 422 business-rule errors on the ApiError", async () => {
     server.use(
       http.post("/api/employees/:id/salary-changes", () =>
