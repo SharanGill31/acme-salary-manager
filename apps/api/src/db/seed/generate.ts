@@ -1,4 +1,5 @@
 import { faker } from "@faker-js/faker";
+import { COUNTRY_CURRENCIES } from "shared";
 import { levelEnum } from "../schema";
 
 type Level = (typeof levelEnum.enumValues)[number];
@@ -51,17 +52,6 @@ const DEPARTMENT_NAMES = [
   "IT",
 ];
 
-const COUNTRIES: { countryCode: string; currency: string }[] = [
-  { countryCode: "US", currency: "USD" },
-  { countryCode: "IN", currency: "INR" },
-  { countryCode: "GB", currency: "GBP" },
-  { countryCode: "DE", currency: "EUR" },
-  { countryCode: "CA", currency: "CAD" },
-  { countryCode: "AU", currency: "AUD" },
-  { countryCode: "SG", currency: "SGD" },
-  { countryCode: "BR", currency: "BRL" },
-];
-
 // Fixed, synthetic rates for deterministic fixture data (see docs/DECISIONS.md).
 const RATE_TO_USD: Record<string, number> = {
   USD: 1.0,
@@ -104,7 +94,7 @@ const SALARY_CHANGE_REASONS = [
 const OUTLIER_RATE = 0.03;
 
 function buildExchangeRates(): SeedData["exchangeRates"] {
-  return COUNTRIES.map(({ currency }) => ({
+  return COUNTRY_CURRENCIES.map(({ currency }) => ({
     currency,
     rateToUsd: RATE_TO_USD[currency].toFixed(6),
   }));
@@ -116,7 +106,7 @@ function buildPayBands(): SeedData["payBands"] {
   for (const level of levelEnum.enumValues) {
     const usdBand = LEVEL_USD_BANDS[level];
 
-    for (const { countryCode, currency } of COUNTRIES) {
+    for (const { countryCode, currency } of COUNTRY_CURRENCIES) {
       const rate = RATE_TO_USD[currency];
       const minMinor = Math.round((usdBand.min / rate) * 100);
       const maxMinor = Math.round((usdBand.max / rate) * 100);
@@ -157,7 +147,7 @@ function daysBetween(from: Date, to: Date): number {
 
 function buildEmployee(index: number, bandByKey: Map<string, SeedData["payBands"][number]>): GeneratedEmployee {
   const fullName = faker.person.fullName();
-  const country = faker.helpers.arrayElement(COUNTRIES);
+  const country = faker.helpers.arrayElement(COUNTRY_CURRENCIES);
   const level = pickWeightedLevel();
   const band = bandByKey.get(`${level}:${country.countryCode}`)!;
 
