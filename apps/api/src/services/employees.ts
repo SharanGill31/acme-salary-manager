@@ -5,8 +5,9 @@ import type {
   Level,
   UpdateEmployeeInput,
 } from "shared";
+import { validateNewEmployee } from "../domain/newEmployee";
 import { classifyAgainstBand, compaRatio as computeCompaRatio } from "../domain/payBand";
-import { ConflictError, NotFoundError } from "../middleware/errorHandler";
+import { ConflictError, NotFoundError, ValidationError } from "../middleware/errorHandler";
 
 export interface RawEmployeeListQuery {
   search?: string;
@@ -165,6 +166,14 @@ export async function createEmployee(
   repo: EmployeeRepository,
   input: CreateEmployeeInput,
 ): Promise<EmployeeListRow> {
+  const validation = validateNewEmployee({
+    countryCode: input.country_code,
+    currency: input.currency,
+  });
+  if (!validation.ok) {
+    throw new ValidationError(validation.errors);
+  }
+
   if (await repo.emailExists(input.email)) {
     throw new ConflictError(EMAIL_TAKEN, "email");
   }

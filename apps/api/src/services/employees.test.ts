@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { CreateEmployeeInput } from "shared";
-import { ConflictError, NotFoundError } from "../middleware/errorHandler";
+import { ConflictError, NotFoundError, ValidationError } from "../middleware/errorHandler";
 import {
   createEmployee,
   getEmployeeDetail,
@@ -194,6 +194,18 @@ describe("createEmployee", () => {
     const repo = createFakeRepo({ employeeCodeExists: vi.fn().mockResolvedValue(true) });
 
     await expect(createEmployee(repo, CREATE_INPUT)).rejects.toThrow(ConflictError);
+  });
+
+  it("throws ValidationError and creates nothing when the currency doesn't match the country", async () => {
+    const repo = createFakeRepo();
+
+    await expect(
+      createEmployee(repo, { ...CREATE_INPUT, country_code: "US", currency: "GBP" }),
+    ).rejects.toMatchObject({
+      constructor: ValidationError,
+      errors: { currency: "Currency must be the country's currency (USD)" },
+    });
+    expect(repo.create).not.toHaveBeenCalled();
   });
 });
 

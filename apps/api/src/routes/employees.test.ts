@@ -298,6 +298,42 @@ describe("employees routes", () => {
       });
     });
 
+    it("returns 422 when the country isn't one Acme employs people in", async () => {
+      const response = await request(app)
+        .post("/api/employees")
+        .send(
+          validBody({
+            email: "france.hire@acme.example",
+            employee_code: "EMPFR0001",
+            country_code: "FR",
+            currency: "EUR",
+          }),
+        );
+
+      expect(response.status).toBe(422);
+      expect(response.body).toEqual({
+        errors: { country_code: "Choose a country Acme employs people in" },
+      });
+    });
+
+    it("returns 422 when the currency isn't the country's currency", async () => {
+      const response = await request(app)
+        .post("/api/employees")
+        .send(
+          validBody({
+            email: "mismatch.hire@acme.example",
+            employee_code: "EMPMM0001",
+            country_code: "US",
+            currency: "GBP",
+          }),
+        );
+
+      expect(response.status).toBe(422);
+      expect(response.body).toEqual({
+        errors: { currency: "Currency must be the country's currency (USD)" },
+      });
+    });
+
     it("returns 400 with plain-language field errors for invalid values", async () => {
       const response = await request(app)
         .post("/api/employees")
