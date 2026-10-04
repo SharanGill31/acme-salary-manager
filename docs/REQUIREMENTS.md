@@ -11,7 +11,7 @@ HR Manager. Not technical. Works in a desktop browser.
 ## In scope
 
 1. **Employee directory** — search by name, email, or employee code; filter by country, department, level, and status; sort; server-side pagination.
-2. **Employee profile** — view and edit details, add an employee, mark an employee inactive.
+2. **Employee profile** — view and edit details, add an employee, mark an employee inactive. An inactive employee can be reactivated.
 3. **Salary change** — record a new salary with an effective date and a reason. Every change is kept as history.
 4. **Insights** — headcount and total payroll by country and by department; minimum, median, average, and maximum salary by level; employees outside the pay band for their level. Cross-country figures are shown in USD using a fixed rate table.
 5. **CSV export** of the filtered employee list.
