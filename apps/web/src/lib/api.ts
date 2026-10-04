@@ -1,3 +1,5 @@
+import { apiUrl } from "./apiUrl";
+
 export interface ApiErrorPayload {
   status: number;
   message: string;
@@ -33,7 +35,7 @@ function firstMessages(fieldErrors: Record<string, string[] | undefined>): Recor
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`/api${path}`, {
+  const response = await fetch(apiUrl(path), {
     ...init,
     headers: { "Content-Type": "application/json", ...init?.headers },
   });

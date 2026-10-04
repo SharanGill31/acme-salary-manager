@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../mocks/server";
-import { DEFAULT_EMPLOYEES, employeesResponse } from "../../mocks/handlers";
+import { DEFAULT_EMPLOYEES, DEFAULT_META, employeesResponse } from "../../mocks/handlers";
 import { EmployeesPage } from "./EmployeesPage";
 
 function renderPage(initialEntries: string[] = ["/employees"]) {
@@ -131,6 +131,28 @@ describe("EmployeesPage", () => {
           sortDir: "desc",
         },
       });
+    });
+
+    it("uses the configured API origin for the list and the export when the API is on another domain", async () => {
+      const apiOrigin = "https://acme-salary-api-jqzf.onrender.com";
+      vi.stubEnv("VITE_API_BASE_URL", apiOrigin);
+      server.use(
+        http.get(`${apiOrigin}/api/employees`, () =>
+          HttpResponse.json(employeesResponse(DEFAULT_EMPLOYEES)),
+        ),
+        http.get(`${apiOrigin}/api/meta`, () => HttpResponse.json(DEFAULT_META)),
+      );
+      try {
+        renderPage();
+        await screen.findByText("Ada Lovelace");
+
+        expect(screen.getByRole("link", { name: "Export CSV" })).toHaveAttribute(
+          "href",
+          `${apiOrigin}/api/employees/export?sortBy=full_name&sortDir=asc`,
+        );
+      } finally {
+        vi.unstubAllEnvs();
+      }
     });
 
     it("follows filter changes", async () => {

@@ -23,6 +23,7 @@ import {
 import { Link as RouterLink, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { EMPLOYEE_STATUSES, type EmployeeSortColumn } from "shared";
+import { apiUrl } from "../../lib/apiUrl";
 import { fetchEmployees } from "./employeesApi";
 import { formatCurrency } from "../../lib/money";
 import { useDebouncedValue } from "../../lib/useDebouncedValue";
@@ -94,9 +95,10 @@ function buildApiParams(query: ParsedQuery): URLSearchParams {
 }
 
 // A plain link: the server sends the file as an attachment, so the browser
-// downloads it and the rows never pass through the app.
+// downloads it and the rows never pass through the app. A link isn't subject
+// to CORS, so this works when the API is on another domain too.
 function buildExportHref(query: ParsedQuery): string {
-  return `/api/employees/export?${buildFilterParams(query)}`;
+  return apiUrl(`/employees/export?${buildFilterParams(query)}`);
 }
 
 export function EmployeesPage() {
