@@ -2,7 +2,7 @@
   "name": "acme-salary-manager",
   "private": true,
   "engines": {
-    "node": ">=20"
+    "node": ">=22.19.0"
   },
   "workspaces": [
     "apps/*",
