@@ -1,0 +1,43 @@
+# Render blueprint: the API as a Node web service and the web app as a static
+# site. The static site proxies /api/* to the API, so the browser sees one
+# origin: no CORS, and the CSV export link works unchanged.
+#
+# DATABASE_URL is entered in the Render dashboard (sync: false), never
+# committed: use Neon's *pooled* connection string for the running API.
+# Migrations and the seed are run separately against Neon's *direct* URL.
+
+services:
+  - type: web
+    name: acme-salary-api
+    runtime: node
+    plan: free
+    # The API loads `shared` from its built dist at runtime, so build it first
+    # (as CI does). --include=dev: TypeScript is a dev dependency.
+    buildCommand: npm ci --include=dev && npm run build:shared && npm run build:api
+    startCommand: npm run start -w apps/api
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: DATABASE_URL
+        sync: false
+
+  - type: web
+    name: acme-salary-web
+    runtime: static
+    # Vite bundles `shared` from source, so no build:shared is needed here.
+    buildCommand: npm ci --include=dev && npm run build:web
+    staticPublishPath: apps/web/dist
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+    routes:
+      # Order matters: proxy the API first, then fall back to the SPA so deep
+      # links like /employees/42 survive a reload. If Render gives the API a
+      # different hostname (e.g. with a suffix), update this destination.
+      - type: rewrite
+        source: /api/*
+        destination: https://acme-salary-api.onrender.com/api/*
+      - type: rewrite
+        source: /*
+        destination: /index.html
