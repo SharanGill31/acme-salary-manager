@@ -76,12 +76,15 @@ export function createEmployeeRepository(db: Db): EmployeeRepository {
       const where = buildWhere(query);
       const orderFn = query.sortDir === "desc" ? desc : asc;
 
+      // Many employees tie on the sort column (country, level, status...), and
+      // Postgres doesn't guarantee an order among ties, so pages could repeat
+      // or skip rows. id breaks the tie, always ascending.
       return db
         .select(SELECTED_COLUMNS)
         .from(employees)
         .innerJoin(departments, eq(employees.departmentId, departments.id))
         .where(where)
-        .orderBy(orderFn(SORT_COLUMNS[query.sortBy]))
+        .orderBy(orderFn(SORT_COLUMNS[query.sortBy]), asc(employees.id))
         .limit(query.pageSize)
         .offset((query.page - 1) * query.pageSize);
     },
