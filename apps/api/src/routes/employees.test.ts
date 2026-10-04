@@ -316,6 +316,34 @@ describe("employees routes", () => {
 
       expect(response.status).toBe(409);
     });
+
+    it("returns 400 with plain-language field errors for invalid values", async () => {
+      const response = await request(app).patch(`/api/employees/${adaId}`).send({
+        full_name: "   ",
+        email: "not-an-email",
+        job_title: "",
+        department_id: 0,
+        level: "L9",
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body.fieldErrors).toEqual({
+        full_name: ["Enter a full name"],
+        email: ["Enter a valid email address"],
+        job_title: ["Enter a job title"],
+        department_id: ["Choose a department"],
+        level: ["Choose a level"],
+      });
+    });
+
+    it("returns 'Choose a department' when department_id is not a number", async () => {
+      const response = await request(app)
+        .patch(`/api/employees/${adaId}`)
+        .send({ department_id: "Engineering" });
+
+      expect(response.status).toBe(400);
+      expect(response.body.fieldErrors.department_id).toEqual(["Choose a department"]);
+    });
   });
 
   describe("POST /api/employees/:id/salary-changes", () => {

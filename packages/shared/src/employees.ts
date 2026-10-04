@@ -79,13 +79,21 @@ export const createEmployeeSchema = z.object({
 
 export type CreateEmployeeInput = z.infer<typeof createEmployeeSchema>;
 
+// Messages are shown to the HR user as-is (the edit form validates with this
+// same schema), so they are written in plain language.
+const CHOOSE_DEPARTMENT = "Choose a department";
+
 export const updateEmployeeSchema = z
   .object({
-    full_name: z.string().trim().min(1).optional(),
-    email: z.string().email().optional(),
-    department_id: z.number().int().positive().optional(),
-    job_title: z.string().trim().min(1).optional(),
-    level: z.enum(LEVELS).optional(),
+    full_name: z.string().trim().min(1, "Enter a full name").optional(),
+    email: z.string().email("Enter a valid email address").optional(),
+    department_id: z
+      .number({ error: CHOOSE_DEPARTMENT })
+      .int(CHOOSE_DEPARTMENT)
+      .positive(CHOOSE_DEPARTMENT)
+      .optional(),
+    job_title: z.string().trim().min(1, "Enter a job title").optional(),
+    level: z.enum(LEVELS, { error: "Choose a level" }).optional(),
     status: z.enum(EMPLOYEE_STATUSES).optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
