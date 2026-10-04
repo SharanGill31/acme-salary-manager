@@ -10,6 +10,7 @@ import {
 } from "shared";
 import type { Db } from "../db/types";
 import { createInsightsRepository } from "../repositories/insights";
+import { parseResponse } from "./parseResponse";
 import {
   getByCountry,
   getByDepartment,
@@ -30,15 +31,16 @@ function toWireOutlier(item: OutlierItem) {
   };
 }
 
-// Every response is parsed with its shared schema, so the wire contract the
-// web app relies on is enforced here.
+// Every response is checked against its shared schema, so the wire contract
+// the web app relies on is enforced here (a mismatch is a 500, see
+// parseResponse).
 export function createInsightsRouter(db: Db): Router {
   const router = Router();
   const repo = createInsightsRepository(db);
 
   router.get("/summary", async (_req, res, next) => {
     try {
-      res.json(insightsSummaryResponseSchema.parse(await getSummary(repo)));
+      res.json(parseResponse(insightsSummaryResponseSchema, await getSummary(repo)));
     } catch (err) {
       next(err);
     }
@@ -46,7 +48,7 @@ export function createInsightsRouter(db: Db): Router {
 
   router.get("/by-country", async (_req, res, next) => {
     try {
-      res.json(insightsByCountryResponseSchema.parse(await getByCountry(repo)));
+      res.json(parseResponse(insightsByCountryResponseSchema, await getByCountry(repo)));
     } catch (err) {
       next(err);
     }
@@ -54,7 +56,7 @@ export function createInsightsRouter(db: Db): Router {
 
   router.get("/by-department", async (_req, res, next) => {
     try {
-      res.json(insightsByDepartmentResponseSchema.parse(await getByDepartment(repo)));
+      res.json(parseResponse(insightsByDepartmentResponseSchema, await getByDepartment(repo)));
     } catch (err) {
       next(err);
     }
@@ -63,7 +65,7 @@ export function createInsightsRouter(db: Db): Router {
   router.get("/by-level", async (req, res, next) => {
     try {
       const query = insightsByLevelQuerySchema.parse(req.query);
-      res.json(insightsByLevelResponseSchema.parse(await getByLevel(repo, query.countryCode)));
+      res.json(parseResponse(insightsByLevelResponseSchema, await getByLevel(repo, query.countryCode)));
     } catch (err) {
       next(err);
     }
@@ -75,7 +77,7 @@ export function createInsightsRouter(db: Db): Router {
       const result = await getOutliers(repo, query.page, query.pageSize);
 
       res.json(
-        insightsOutliersResponseSchema.parse({
+        parseResponse(insightsOutliersResponseSchema, {
           items: result.items.map(toWireOutlier),
           total: result.total,
           page: result.page,

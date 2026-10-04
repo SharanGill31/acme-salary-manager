@@ -25,6 +25,7 @@ import {
   type EmployeeListRow,
 } from "../services/employees";
 import { recordSalaryChange } from "../services/salaryChanges";
+import { parseResponse } from "./parseResponse";
 
 const idParamSchema = z.coerce.number().int().positive();
 
@@ -70,7 +71,7 @@ export function createEmployeesRouter(db: Db): Router {
       const query = employeeListQuerySchema.parse(req.query);
       const result = await listEmployees(repo, query);
 
-      const payload = employeeListResponseSchema.parse({
+      const payload = parseResponse(employeeListResponseSchema, {
         items: result.items.map(toWireItem),
         total: result.total,
         page: result.page,
@@ -106,7 +107,7 @@ export function createEmployeesRouter(db: Db): Router {
     try {
       const id = idParamSchema.parse(req.params.id);
       const detail = await getEmployeeDetail(repo, id);
-      const payload = employeeDetailResponseSchema.parse(toWireDetail(detail));
+      const payload = parseResponse(employeeDetailResponseSchema, toWireDetail(detail));
 
       res.json(payload);
     } catch (err) {
@@ -118,7 +119,7 @@ export function createEmployeesRouter(db: Db): Router {
     try {
       const input = createEmployeeSchema.parse(req.body);
       const created = await createEmployee(repo, input);
-      const payload = employeeListItemSchema.parse(toWireItem(created));
+      const payload = parseResponse(employeeListItemSchema, toWireItem(created));
 
       res.status(201).json(payload);
     } catch (err) {
@@ -131,7 +132,7 @@ export function createEmployeesRouter(db: Db): Router {
       const id = idParamSchema.parse(req.params.id);
       const patch = updateEmployeeSchema.parse(req.body);
       const updated = await updateEmployee(repo, id, patch);
-      const payload = employeeListItemSchema.parse(toWireItem(updated));
+      const payload = parseResponse(employeeListItemSchema, toWireItem(updated));
 
       res.json(payload);
     } catch (err) {
@@ -156,7 +157,7 @@ export function createEmployeesRouter(db: Db): Router {
         },
       );
 
-      const payload = recordSalaryChangeResponseSchema.parse({
+      const payload = parseResponse(recordSalaryChangeResponseSchema, {
         ...toWireDetail(result),
         warnings: result.warnings,
       });
