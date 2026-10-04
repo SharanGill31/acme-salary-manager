@@ -10,10 +10,11 @@ import {
   Stack,
   TextField,
 } from "@mui/material";
-import { Controller, useForm, type UseFormSetError } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { useMutation } from "@tanstack/react-query";
 import type { EmployeeListItem, RecordSalaryChangeResponse } from "shared";
 import { ApiError } from "../../lib/api";
+import { applyServerErrors } from "../../lib/applyServerErrors";
 import { currencyMinorDigits, formatCurrency, parseMoneyToMinor } from "../../lib/money";
 import { recordSalaryChange } from "./employeesApi";
 
@@ -45,25 +46,6 @@ function todayIsoDate(): string {
 function amountExample(currency: string): string {
   const digits = currencyMinorDigits(currency);
   return digits === 0 ? "95,000" : `95,000.${"0".repeat(digits)}`;
-}
-
-// Returns true when every server error was placed on a form field.
-function applyServerErrors(
-  errors: Record<string, string>,
-  setError: UseFormSetError<FormValues>,
-): boolean {
-  let allMapped = true;
-  let focused = false;
-  for (const [key, message] of Object.entries(errors)) {
-    const field = SERVER_FIELD_MAP[key];
-    if (!field) {
-      allMapped = false;
-      continue;
-    }
-    setError(field, { type: "server", message }, { shouldFocus: !focused });
-    focused = true;
-  }
-  return allMapped;
 }
 
 interface SalaryChangeFormProps {
@@ -98,7 +80,7 @@ function SalaryChangeForm({ employee, onCancel, onSaved, onPendingChange }: Sala
         error instanceof ApiError &&
         (error.status === 400 || error.status === 422) &&
         error.errors &&
-        applyServerErrors(error.errors, setError);
+        applyServerErrors(error.errors, SERVER_FIELD_MAP, setError);
       if (!mapped) {
         setFormError("Could not save the salary change. Please try again.");
       }
