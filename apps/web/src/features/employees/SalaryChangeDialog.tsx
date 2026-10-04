@@ -57,6 +57,12 @@ interface SalaryChangeFormProps {
 
 function SalaryChangeForm({ employee, onCancel, onSaved, onPendingChange }: SalaryChangeFormProps) {
   const [formError, setFormError] = useState<string | null>(null);
+  // Fixed when the dialog opens. After saving, the profile cache updates
+  // while the dialog is still fading out; reading the live salary would
+  // flip the hint to the new amount mid-close.
+  const [currentSalary] = useState(() =>
+    formatCurrency(employee.salaryMinor, employee.currency),
+  );
   const { control, handleSubmit, setError } = useForm<FormValues>({
     defaultValues: { amount: "", effectiveDate: todayIsoDate(), reason: "" },
   });
@@ -110,10 +116,7 @@ function SalaryChangeForm({ employee, onCancel, onSaved, onPendingChange }: Sala
                 required
                 autoFocus
                 error={Boolean(fieldState.error)}
-                helperText={
-                  fieldState.error?.message ??
-                  `Current salary: ${formatCurrency(employee.salaryMinor, employee.currency)}`
-                }
+                helperText={fieldState.error?.message ?? `Current salary: ${currentSalary}`}
                 slotProps={{
                   htmlInput: { inputMode: "decimal", autoComplete: "off" },
                   input: {

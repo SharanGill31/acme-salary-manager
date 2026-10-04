@@ -7,6 +7,7 @@ import type { EmployeeDetailResponse } from "shared";
 import { server } from "../../mocks/server";
 import { DEFAULT_EMPLOYEE_DETAIL } from "../../mocks/handlers";
 import { EmployeeDetailPage } from "./EmployeeDetailPage";
+import { SalaryChangeDialog } from "./SalaryChangeDialog";
 
 const UPDATED_DETAIL: EmployeeDetailResponse = {
   ...DEFAULT_EMPLOYEE_DETAIL,
@@ -263,6 +264,27 @@ describe("Salary change dialog", () => {
     expect(
       await within(dialog).findByText(/could not save the salary change/i),
     ).toBeInTheDocument();
+  });
+
+  it("keeps showing the salary it opened with even if the employee's salary changes underneath", () => {
+    // After saving, the profile cache is updated while the dialog is still
+    // fading out; the "Current salary" hint must not flip to the new amount.
+    const queryClient = new QueryClient();
+    const props = { open: true, onClose: () => {}, onSaved: () => {} };
+
+    const { rerender } = render(
+      <QueryClientProvider client={queryClient}>
+        <SalaryChangeDialog {...props} employee={DEFAULT_EMPLOYEE_DETAIL.employee} />
+      </QueryClientProvider>,
+    );
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <SalaryChangeDialog {...props} employee={UPDATED_DETAIL.employee} />
+      </QueryClientProvider>,
+    );
+
+    const dialog = screen.getByRole("dialog", { name: "Change salary" });
+    expect(within(dialog).getByText("Current salary: $90,000.00")).toBeInTheDocument();
   });
 
   it("closes on Escape and returns focus to the Change salary button", async () => {
