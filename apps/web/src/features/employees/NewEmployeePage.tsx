@@ -20,6 +20,7 @@ import { applyServerErrors } from "../../lib/applyServerErrors";
 import { currencyMinorDigits, parseMoneyToMinor } from "../../lib/money";
 import { useMetaQuery } from "../../lib/useMetaQuery";
 import { createEmployee } from "./employeesApi";
+import { refreshEmployeeData } from "./refreshEmployeeData";
 
 // Field names match the API's snake_case body so server errors map 1:1,
 // except the salary, which is typed as text and sent as salary_minor.
@@ -142,7 +143,7 @@ export function NewEmployeePage() {
     },
     onMutate: () => setFormError(null),
     onSuccess: (created) => {
-      void queryClient.invalidateQueries({ queryKey: ["employees"] });
+      refreshEmployeeData(queryClient);
       navigate(`/employees/${created.id}`, { state: { notice: "Employee added" } });
     },
     onError: (error) => {

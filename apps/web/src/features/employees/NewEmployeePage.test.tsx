@@ -191,7 +191,7 @@ describe("NewEmployeePage", () => {
     );
   });
 
-  it("opens the new employee's profile with a confirmation and refreshes the list", async () => {
+  it("opens the new employee's profile with a confirmation and refreshes the list and insights", async () => {
     let requestedId: string | readonly string[] | undefined;
     server.use(
       http.post("/api/employees", () =>
@@ -212,6 +212,7 @@ describe("NewEmployeePage", () => {
     expect(await screen.findByRole("heading", { level: 1, name: "Ada Lovelace" })).toBeInTheDocument();
     expect(requestedId).toBe("3");
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["employees"] });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["insights"] });
   });
 
   it("shows a 409 conflict on the field the server names", async () => {

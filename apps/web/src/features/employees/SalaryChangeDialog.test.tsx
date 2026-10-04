@@ -160,7 +160,7 @@ describe("Salary change dialog", () => {
     expect(rows[1]).toHaveTextContent("Annual review");
   });
 
-  it("refreshes the employees list after saving", async () => {
+  it("refreshes the employees list and insights after saving", async () => {
     server.use(
       http.post("/api/employees/:id/salary-changes", () =>
         HttpResponse.json({ ...UPDATED_DETAIL, warnings: [] }, { status: 201 }),
@@ -176,6 +176,7 @@ describe("Salary change dialog", () => {
     await waitFor(() =>
       expect(invalidate).toHaveBeenCalledWith({ queryKey: ["employees"] }),
     );
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["insights"] });
   });
 
   it("shows server warnings after saving", async () => {

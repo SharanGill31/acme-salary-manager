@@ -178,6 +178,8 @@ describe("Edit details dialog", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(await screen.findByRole("heading", { level: 1, name: "Ada King" })).toBeInTheDocument();
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["employees"] });
+    // A level or department change moves this employee in the insights.
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["insights"] });
   });
 
   it("shows a 409 email conflict on the email field and stays open", async () => {

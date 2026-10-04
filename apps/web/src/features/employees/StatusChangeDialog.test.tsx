@@ -89,6 +89,8 @@ describe("Mark inactive / Mark active", () => {
     expect(await screen.findByRole("button", { name: "Mark active" })).toBeInTheDocument();
     expect(statusDetail()).toHaveTextContent("Inactive");
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["employees"] });
+    // Insights count active employees only.
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["insights"] });
   });
 
   it("reactivates an inactive employee after confirmation", async () => {

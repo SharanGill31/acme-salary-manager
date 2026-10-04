@@ -24,6 +24,7 @@ import { SalaryChangeDialog } from "./SalaryChangeDialog";
 import { EditDetailsDialog } from "./EditDetailsDialog";
 import { StatusChangeDialog } from "./StatusChangeDialog";
 import { statusActionLabel } from "./employeeStatus";
+import { refreshEmployeeData } from "./refreshEmployeeData";
 
 interface Notice {
   severity: "success" | "warning";
@@ -120,7 +121,7 @@ export function EmployeeDetailPage() {
 
   function handleSalarySaved({ warnings, ...detail }: RecordSalaryChangeResponse) {
     queryClient.setQueryData(["employee", id], detail);
-    void queryClient.invalidateQueries({ queryKey: ["employees"] });
+    refreshEmployeeData(queryClient);
     setOpenDialog(null);
     setNotice(
       warnings.length > 0
@@ -134,14 +135,14 @@ export function EmployeeDetailPage() {
   // the cache.
   function handleDetailsSaved() {
     void queryClient.invalidateQueries({ queryKey: ["employee", id] });
-    void queryClient.invalidateQueries({ queryKey: ["employees"] });
+    refreshEmployeeData(queryClient);
     setOpenDialog(null);
     setNotice({ severity: "success", message: "Details updated" });
   }
 
   function handleStatusSaved(fullName: string, status: EmployeeStatus) {
     void queryClient.invalidateQueries({ queryKey: ["employee", id] });
-    void queryClient.invalidateQueries({ queryKey: ["employees"] });
+    refreshEmployeeData(queryClient);
     setOpenDialog(null);
     setNotice({ severity: "success", message: `${fullName} marked as ${status}` });
   }
