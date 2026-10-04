@@ -85,6 +85,53 @@ describe("EmployeesPage", () => {
     expect(await screen.findByText(/no employees found/i)).toBeInTheDocument();
   });
 
+  describe("CSV export", () => {
+    function exportHref() {
+      const href = screen.getByRole("link", { name: "Export CSV" }).getAttribute("href") ?? "";
+      const url = new URL(href, "http://localhost");
+      return { path: url.pathname, params: Object.fromEntries(url.searchParams) };
+    }
+
+    it("links to the export with the default sort", async () => {
+      renderPage();
+      await screen.findByText("Ada Lovelace");
+
+      expect(exportHref()).toEqual({
+        path: "/api/employees/export",
+        params: { sortBy: "full_name", sortDir: "asc" },
+      });
+    });
+
+    it("carries the current search, filters and sort, but not the page", async () => {
+      renderPage([
+        "/employees?search=lov&countryCode=GB&departmentId=2&level=L3&status=active&sortBy=hire_date&sortDir=desc&page=3",
+      ]);
+      await screen.findByText("Ada Lovelace");
+
+      expect(exportHref()).toEqual({
+        path: "/api/employees/export",
+        params: {
+          search: "lov",
+          countryCode: "GB",
+          departmentId: "2",
+          level: "L3",
+          status: "active",
+          sortBy: "hire_date",
+          sortDir: "desc",
+        },
+      });
+    });
+
+    it("follows filter changes", async () => {
+      renderPage();
+      await screen.findByText("Ada Lovelace");
+
+      fireEvent.change(screen.getByLabelText(/country/i), { target: { value: "GB" } });
+
+      await waitFor(() => expect(exportHref().params.countryCode).toBe("GB"));
+    });
+  });
+
   it("navigates to the employee detail page when Enter is pressed on a row", async () => {
     renderPage();
     await screen.findByText("Ada Lovelace");

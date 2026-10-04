@@ -72,18 +72,31 @@ function parseParams(params: URLSearchParams): ParsedQuery {
   };
 }
 
+// Search, filters and sort: shared by the list request and the CSV export,
+// so the export always contains exactly what the list shows (across all pages).
+function buildFilterParams(query: ParsedQuery): URLSearchParams {
+  const params = new URLSearchParams();
+  if (query.search) params.set("search", query.search);
+  if (query.countryCode) params.set("countryCode", query.countryCode);
+  if (query.departmentId) params.set("departmentId", query.departmentId);
+  if (query.level) params.set("level", query.level);
+  if (query.status) params.set("status", query.status);
+  params.set("sortBy", query.sortBy);
+  params.set("sortDir", query.sortDir);
+  return params;
+}
+
 function buildApiParams(query: ParsedQuery): URLSearchParams {
-  const apiParams = new URLSearchParams();
-  if (query.search) apiParams.set("search", query.search);
-  if (query.countryCode) apiParams.set("countryCode", query.countryCode);
-  if (query.departmentId) apiParams.set("departmentId", query.departmentId);
-  if (query.level) apiParams.set("level", query.level);
-  if (query.status) apiParams.set("status", query.status);
-  apiParams.set("sortBy", query.sortBy);
-  apiParams.set("sortDir", query.sortDir);
+  const apiParams = buildFilterParams(query);
   apiParams.set("page", String(query.page));
   apiParams.set("pageSize", String(PAGE_SIZE));
   return apiParams;
+}
+
+// A plain link: the server sends the file as an attachment, so the browser
+// downloads it and the rows never pass through the app.
+function buildExportHref(query: ParsedQuery): string {
+  return `/api/employees/export?${buildFilterParams(query)}`;
 }
 
 export function EmployeesPage() {
@@ -146,9 +159,14 @@ export function EmployeesPage() {
         <Typography variant="h4" component="h1">
           Employees
         </Typography>
-        <Button component={RouterLink} to="/employees/new" variant="contained">
-          Add employee
-        </Button>
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Button component="a" href={buildExportHref(query)} download variant="outlined">
+            Export CSV
+          </Button>
+          <Button component={RouterLink} to="/employees/new" variant="contained">
+            Add employee
+          </Button>
+        </Box>
       </Box>
 
       <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 3 }}>
