@@ -27,6 +27,13 @@ describe("formatCurrency", () => {
     expect(formatCurrency("900719925474099312", "USD")).toBe("$9,007,199,254,740,993.12");
   });
 
+  it("abbreviates large amounts when asked for compact output", () => {
+    expect(formatCurrency("30550000000", "USD", { compact: true })).toBe("$305.5M");
+    expect(formatCurrency("1239000000000", "USD", { compact: true })).toBe("$12.4B");
+    expect(formatCurrency("9850000", "USD", { compact: true })).toBe("$98.5K");
+    expect(formatCurrency("0", "USD", { compact: true })).toBe("$0");
+  });
+
   it("rounds to whole units, half away from zero, when asked", () => {
     expect(formatCurrency("98765432100", "USD", { wholeUnits: true })).toBe("$987,654,321");
     expect(formatCurrency("12575050", "USD", { wholeUnits: true })).toBe("$125,751");

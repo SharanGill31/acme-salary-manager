@@ -92,6 +92,22 @@ describe("InsightsPage", () => {
     ]);
   });
 
+  it("charts total payroll by country and by department, described for screen readers", async () => {
+    renderPage();
+
+    const country = await screen.findByRole("figure", { name: "Total payroll by country" });
+    expect(within(country).getByRole("img")).toHaveAccessibleName(
+      "Bar chart of total payroll by country in USD. Largest: United States, $305,500,000. " +
+        "Smallest: United Kingdom, $123,900,000. Exact figures are in the table below.",
+    );
+
+    const department = await screen.findByRole("figure", { name: "Total payroll by department" });
+    expect(within(department).getByRole("img")).toHaveAccessibleName(
+      "Bar chart of total payroll by department in USD. Largest: Engineering, $273,000,000. " +
+        "Smallest: Sales, $142,500,000. Exact figures are in the table below.",
+    );
+  });
+
   it("keeps other sections working when one fails, and retries the failed one", async () => {
     let attempts = 0;
     server.use(
@@ -114,7 +130,10 @@ describe("InsightsPage", () => {
 
     fireEvent.click(within(section).getByRole("button", { name: "Retry" }));
 
-    expect(await within(section).findByText("United Kingdom")).toBeInTheDocument();
+    // The country name also appears as a chart axis label; check the table.
+    expect(
+      await within(section).findByRole("rowheader", { name: "United Kingdom" }),
+    ).toBeInTheDocument();
   });
 
   describe("salary by level", () => {

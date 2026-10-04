@@ -27,6 +27,9 @@ interface FormatCurrencyOptions {
   // medians. Intl rounds the exact decimal string half away from zero, so
   // there is still no float involved.
   wholeUnits?: boolean;
+  // Abbreviate (e.g. "$305.5M") for chart axis ticks, where space is tight
+  // and exact figures are in the table.
+  compact?: boolean;
 }
 
 export function formatCurrency(
@@ -39,6 +42,9 @@ export function formatCurrency(
     style: "currency",
     currency,
     ...(options.wholeUnits ? { minimumFractionDigits: 0, maximumFractionDigits: 0 } : {}),
+    ...(options.compact
+      ? { notation: "compact", minimumFractionDigits: 0, maximumFractionDigits: 1 }
+      : {}),
   }).format(minorToDecimalString(amountMinor, digits));
 }
 
