@@ -4,7 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../mocks/server";
-import { DEFAULT_INSIGHTS_BY_COUNTRY } from "../../mocks/handlers";
+import { DEFAULT_INSIGHTS_BY_COUNTRY, DEFAULT_INSIGHTS_BY_LEVEL_USD } from "../../mocks/handlers";
 import { InsightsPage } from "./InsightsPage";
 
 function renderPage() {
@@ -111,6 +111,126 @@ describe("InsightsPage", () => {
     fireEvent.click(within(section).getByRole("button", { name: "Retry" }));
 
     expect(await within(section).findByText("United Kingdom")).toBeInTheDocument();
+  });
+
+  describe("salary by level", () => {
+    const GB_LEVELS = {
+      currency: "GBP",
+      levels: [
+        {
+          level: "L1",
+          minSalaryMinor: "2800000",
+          medianSalaryMinor: "4100000",
+          averageSalaryMinor: "4212550",
+          maxSalaryMinor: "6200000",
+        },
+      ],
+    };
+
+    function levelSection() {
+      return screen.findByRole("region", { name: "Salary by level" });
+    }
+
+    it("shows min, median, average and max per level across all countries in USD", async () => {
+      let search: string | undefined;
+      server.use(
+        http.get("/api/insights/by-level", ({ request }) => {
+          search = new URL(request.url).search;
+          return HttpResponse.json(DEFAULT_INSIGHTS_BY_LEVEL_USD);
+        }),
+      );
+
+      renderPage();
+      const section = await levelSection();
+      const table = await within(section).findByRole("table", { name: "Salary by level" });
+
+      expect(search).toBe("");
+      expect(within(section).getByLabelText("Country")).toHaveValue("");
+      expect(
+        within(table)
+          .getAllByRole("columnheader")
+          .map((header) => header.textContent),
+      ).toEqual(["Level", "Minimum", "Median", "Average", "Maximum"]);
+      expect(rowTexts(table)).toEqual([
+        ["L1", "$35,000", "$52,000", "$53,500", "$79,000"],
+        ["L2", "$50,000", "$74,000", "$75,250", "$102,000"],
+      ]);
+      expect(within(section).getByText("Amounts in USD, all countries.")).toBeInTheDocument();
+    });
+
+    it("offers all countries in USD or one country in its own currency", async () => {
+      renderPage();
+      const section = await levelSection();
+
+      const options = within(within(section).getByLabelText("Country")).getAllByRole("option");
+      expect(options.map((option) => option.textContent)).toEqual([
+        "All countries (USD)",
+        "United States (USD)",
+        "India (INR)",
+        "United Kingdom (GBP)",
+        "Germany (EUR)",
+        "Canada (CAD)",
+        "Australia (AUD)",
+        "Singapore (SGD)",
+        "Brazil (BRL)",
+      ]);
+    });
+
+    it("switches to one country's figures in its local currency", async () => {
+      let countryCode: string | null = null;
+      server.use(
+        http.get("/api/insights/by-level", ({ request }) => {
+          countryCode = new URL(request.url).searchParams.get("countryCode");
+          return HttpResponse.json(countryCode === "GB" ? GB_LEVELS : DEFAULT_INSIGHTS_BY_LEVEL_USD);
+        }),
+      );
+
+      renderPage();
+      const section = await levelSection();
+      await within(section).findByRole("table", { name: "Salary by level" });
+
+      fireEvent.change(within(section).getByLabelText("Country"), { target: { value: "GB" } });
+
+      expect(await within(section).findByText("£28,000")).toBeInTheDocument();
+      expect(countryCode).toBe("GB");
+      expect(rowTexts(within(section).getByRole("table", { name: "Salary by level" }))).toEqual([
+        ["L1", "£28,000", "£41,000", "£42,126", "£62,000"],
+      ]);
+      expect(within(section).getByText("Amounts in GBP, United Kingdom only.")).toBeInTheDocument();
+    });
+
+    it("keeps the country selector usable when loading a country fails", async () => {
+      server.use(
+        http.get("/api/insights/by-level", ({ request }) =>
+          new URL(request.url).searchParams.get("countryCode") === "GB"
+            ? HttpResponse.json({ error: "Internal server error" }, { status: 500 })
+            : HttpResponse.json(DEFAULT_INSIGHTS_BY_LEVEL_USD),
+        ),
+      );
+
+      renderPage();
+      const section = await levelSection();
+      await within(section).findByRole("table", { name: "Salary by level" });
+
+      fireEvent.change(within(section).getByLabelText("Country"), { target: { value: "GB" } });
+      expect(await within(section).findByText("Could not load this section.")).toBeInTheDocument();
+
+      fireEvent.change(within(section).getByLabelText("Country"), { target: { value: "" } });
+      expect(await within(section).findByText("$35,000")).toBeInTheDocument();
+    });
+
+    it("says so when a country has no active employees", async () => {
+      server.use(
+        http.get("/api/insights/by-level", () =>
+          HttpResponse.json({ currency: "SGD", levels: [] }),
+        ),
+      );
+
+      renderPage();
+      const section = await levelSection();
+
+      expect(await within(section).findByText("No active employees")).toBeInTheDocument();
+    });
   });
 
   it("marks a section as busy while it loads", async () => {

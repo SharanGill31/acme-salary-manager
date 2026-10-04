@@ -9,6 +9,7 @@ import {
   fetchInsightsSummary,
   insightsKeys,
 } from "./insightsApi";
+import { SalaryByLevelSection } from "./SalaryByLevelSection";
 import { SummaryTiles } from "./SummaryTiles";
 
 export function InsightsPage() {
@@ -63,6 +64,8 @@ export function InsightsPage() {
             />
           )}
         </InsightsSection>
+
+        <SalaryByLevelSection />
       </Stack>
     </Box>
   );
