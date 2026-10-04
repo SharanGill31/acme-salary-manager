@@ -1,18 +1,7 @@
 import { Box, Chip, Paper, Typography } from "@mui/material";
 import type { BandPosition, EmployeeDetailResponse } from "shared";
+import { BAND_POSITION_COLORS, BAND_POSITION_LABELS } from "../../lib/bandPosition";
 import { formatCurrency } from "../../lib/money";
-
-const POSITION_LABELS: Record<BandPosition, string> = {
-  below: "Below band",
-  within: "Within band",
-  above: "Above band",
-};
-
-const POSITION_COLORS: Record<BandPosition, "warning" | "success" | "error"> = {
-  below: "warning",
-  within: "success",
-  above: "error",
-};
 
 const percentFormat = new Intl.NumberFormat("en-US", { style: "percent", maximumFractionDigits: 0 });
 
@@ -49,7 +38,7 @@ export function PayBandCard({ detail }: PayBandCardProps) {
         <Typography id="pay-band-heading" variant="h6" component="h2">
           Pay band
         </Typography>
-        <Chip label={POSITION_LABELS[bandPosition]} color={POSITION_COLORS[bandPosition]} size="small" />
+        <Chip label={BAND_POSITION_LABELS[bandPosition]} color={BAND_POSITION_COLORS[bandPosition]} size="small" />
       </Box>
 
       <Box component="dl" sx={{ m: 0, display: "grid", gridTemplateColumns: "max-content 1fr", gap: 1 }}>
@@ -81,7 +70,7 @@ export function PayBandCard({ detail }: PayBandCardProps) {
             width: 4,
             height: 20,
             borderRadius: 1,
-            bgcolor: `${POSITION_COLORS[bandPosition]}.main`,
+            bgcolor: `${BAND_POSITION_COLORS[bandPosition]}.main`,
           }}
         />
       </Box>

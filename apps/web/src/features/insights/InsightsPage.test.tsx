@@ -4,7 +4,11 @@ import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../../mocks/server";
-import { DEFAULT_INSIGHTS_BY_COUNTRY, DEFAULT_INSIGHTS_BY_LEVEL_USD } from "../../mocks/handlers";
+import {
+  DEFAULT_INSIGHTS_BY_COUNTRY,
+  DEFAULT_INSIGHTS_BY_LEVEL_USD,
+  DEFAULT_INSIGHTS_OUTLIERS,
+} from "../../mocks/handlers";
 import { InsightsPage } from "./InsightsPage";
 
 function renderPage() {
@@ -230,6 +234,115 @@ describe("InsightsPage", () => {
       const section = await levelSection();
 
       expect(await within(section).findByText("No active employees")).toBeInTheDocument();
+    });
+  });
+
+  describe("employees outside their pay band", () => {
+    function outliersSection() {
+      return screen.findByRole("region", { name: "Employees outside their pay band" });
+    }
+
+    function cells(row: HTMLElement) {
+      return [...within(row).getAllByRole("rowheader"), ...within(row).getAllByRole("cell")];
+    }
+
+    it("lists each employee with their salary against their band, in their own currency", async () => {
+      renderPage();
+      const section = await outliersSection();
+      const table = await within(section).findByRole("table", {
+        name: "Employees outside their pay band",
+      });
+
+      expect(
+        within(table)
+          .getAllByRole("columnheader")
+          .map((header) => header.textContent),
+      ).toEqual(["Employee", "Country", "Level", "Salary", "Pay band", "Position", "Compa-ratio"]);
+
+      const [grace, alan] = within(table).getAllByRole("row").slice(1);
+
+      expect(within(grace).getByRole("link", { name: "Grace Hopper" })).toHaveAttribute(
+        "href",
+        "/employees/7",
+      );
+      expect(cells(grace).map((cell) => cell.textContent)).toEqual([
+        "Grace HopperEMP000007",
+        "United Kingdom",
+        "L5",
+        "£180,000.00",
+        "£110,000.00 – £150,000.00",
+        "Above band",
+        "138%",
+      ]);
+      expect(cells(alan).map((cell) => cell.textContent)).toEqual([
+        "Alan TuringEMP000012",
+        "United States",
+        "L2",
+        "$48,000.00",
+        "$60,000.00 – $80,000.00",
+        "Below band",
+        "69%",
+      ]);
+    });
+
+    it("pages through the list on the server", async () => {
+      const pages: (string | null)[] = [];
+      server.use(
+        http.get("/api/insights/outliers", ({ request }) => {
+          const page = new URL(request.url).searchParams.get("page");
+          pages.push(page);
+          return HttpResponse.json({
+            ...DEFAULT_INSIGHTS_OUTLIERS,
+            items:
+              page === "2"
+                ? [{ ...DEFAULT_INSIGHTS_OUTLIERS.items[1], id: 30, fullName: "Page Two Person" }]
+                : DEFAULT_INSIGHTS_OUTLIERS.items,
+            total: 21,
+            page: Number(page),
+          });
+        }),
+      );
+
+      renderPage();
+      const section = await outliersSection();
+      await within(section).findByText("Grace Hopper");
+
+      expect(within(section).getByText("1–20 of 21")).toBeInTheDocument();
+      fireEvent.click(within(section).getByRole("button", { name: /next page/i }));
+
+      expect(await within(section).findByText("Page Two Person")).toBeInTheDocument();
+      expect(within(section).getByText("21–21 of 21")).toBeInTheDocument();
+      expect(pages).toEqual(["1", "2"]);
+    });
+
+    it("says so when nobody is outside their pay band", async () => {
+      server.use(
+        http.get("/api/insights/outliers", () =>
+          HttpResponse.json({ items: [], total: 0, page: 1, pageSize: 20 }),
+        ),
+      );
+
+      renderPage();
+      const section = await outliersSection();
+
+      expect(
+        await within(section).findByText("No active employees are outside their pay band."),
+      ).toBeInTheDocument();
+    });
+
+    it("is linked from the Outside pay band tile", async () => {
+      renderPage();
+      const summary = await screen.findByRole("region", { name: "Summary" });
+
+      const link = await within(summary).findByRole("link", {
+        name: "View list of employees outside their pay band",
+      });
+      expect(link).toHaveAttribute("href", "#outliers");
+      expect(link).toHaveTextContent("View list");
+
+      const section = await outliersSection();
+      expect(section).toHaveAttribute("id", "outliers");
+      expect(section).toHaveAttribute("tabindex", "-1");
     });
   });
 

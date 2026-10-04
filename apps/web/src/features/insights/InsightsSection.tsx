@@ -20,6 +20,10 @@ export function InsightsSection<T>({ id, title, query, actions, children }: Insi
   return (
     <Paper
       component="section"
+      // The id makes the section an in-page link target; tabIndex -1 lets
+      // that link move keyboard focus here without adding a tab stop.
+      id={id}
+      tabIndex={-1}
       aria-labelledby={headingId}
       aria-busy={query.isPending}
       sx={{ p: 3 }}
