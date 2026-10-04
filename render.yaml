@@ -1,6 +1,9 @@
 # Render blueprint: the API as a Node web service and the web app as a static
-# site. The static site proxies /api/* to the API, so the browser sees one
-# origin: no CORS, and the CSV export link works unchanged.
+# site. The browser calls the API on its own domain: the web app is built with
+# VITE_API_BASE_URL pointing at it, and the API allows the web app's origin
+# through ALLOWED_ORIGINS (CORS). A static-site rewrite of /api/* to the API
+# was tried first, but Render answered those proxied requests with 401
+# "missing Authorization header" before they reached the API.
 #
 # DATABASE_URL is entered in the Render dashboard (sync: false), never
 # committed: use Neon's *pooled* connection string for the running API.
@@ -21,6 +24,9 @@ services:
         value: "24"
       - key: DATABASE_URL
         sync: false
+      # The deployed web app's origin (comma-separate to allow more).
+      - key: ALLOWED_ORIGINS
+        value: https://acme-salary-web-nv6c.onrender.com
 
   - type: web
     name: acme-salary-web
@@ -31,13 +37,12 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "24"
+      # Baked into the bundle at build time: the API's actual Render hostname.
+      - key: VITE_API_BASE_URL
+        value: https://acme-salary-api-jqzf.onrender.com
     routes:
-      # Order matters: proxy the API first, then fall back to the SPA so deep
-      # links like /employees/42 survive a reload. The destination is the API
-      # service's actual Render hostname (Render added the -jqzf suffix).
-      - type: rewrite
-        source: /api/*
-        destination: https://acme-salary-api-jqzf.onrender.com/api/*
+      # Single-page app: serve index.html for client routes so deep links like
+      # /employees/42 survive a reload.
       - type: rewrite
         source: /*
         destination: /index.html
