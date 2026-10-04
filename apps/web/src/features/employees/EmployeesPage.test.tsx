@@ -85,6 +85,17 @@ describe("EmployeesPage", () => {
     expect(await screen.findByText(/no employees found/i)).toBeInTheDocument();
   });
 
+  it("floats every filter label above its 'All …' option instead of drawing it over the text", async () => {
+    renderPage();
+    await screen.findByText("Ada Lovelace");
+
+    for (const label of [/country/i, /department/i, /level/i, /status/i]) {
+      const select = screen.getByLabelText(label) as HTMLSelectElement;
+      expect(select).toHaveValue("");
+      expect(select.labels?.[0]).toHaveAttribute("data-shrink", "true");
+    }
+  });
+
   describe("CSV export", () => {
     function exportHref() {
       const href = screen.getByRole("link", { name: "Export CSV" }).getAttribute("href") ?? "";

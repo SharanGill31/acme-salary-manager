@@ -85,6 +85,17 @@ describe("NewEmployeePage", () => {
     expect(screen.queryByLabelText(/^currency/i)).not.toBeInTheDocument();
   });
 
+  it("floats the select labels above their 'Choose a …' option instead of drawing them over the text", async () => {
+    renderPage();
+    await screen.findByRole("heading", { level: 1, name: "Add employee" });
+
+    for (const label of [/country/i, /department/i, /level/i]) {
+      const select = field(label) as HTMLSelectElement;
+      expect(select).toHaveValue("");
+      expect(select.labels?.[0]).toHaveAttribute("data-shrink", "true");
+    }
+  });
+
   it("lists every country Acme employs people in, with its currency", async () => {
     renderPage();
 

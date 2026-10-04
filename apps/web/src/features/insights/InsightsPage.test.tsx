@@ -181,6 +181,15 @@ describe("InsightsPage", () => {
       expect(within(section).getByText("Amounts in USD, all countries.")).toBeInTheDocument();
     });
 
+    it("floats the country label above 'All countries (USD)' instead of drawing it over the text", async () => {
+      renderPage();
+      const section = await levelSection();
+
+      const select = within(section).getByLabelText("Country") as HTMLSelectElement;
+      expect(select).toHaveValue("");
+      expect(select.labels?.[0]).toHaveAttribute("data-shrink", "true");
+    });
+
     it("offers all countries in USD or one country in its own currency", async () => {
       renderPage();
       const section = await levelSection();

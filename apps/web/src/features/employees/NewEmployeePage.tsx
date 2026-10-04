@@ -25,7 +25,8 @@ import { refreshEmployeeData } from "./refreshEmployeeData";
 
 // Field names match the API's snake_case body so server errors map 1:1,
 // except the salary, which is typed as text and sent as salary_minor.
-// Selects start empty ("") so the shared schema's "Choose a …" messages apply.
+// Selects start empty ("") so the shared schema's "Choose a …" messages apply;
+// their labels always float, since the empty value shows a "Choose a …" option.
 interface FormValues {
   full_name: string;
   email: string;
@@ -235,7 +236,7 @@ export function NewEmployeePage() {
                 helperText={
                   fieldState.error?.message ?? "Salary and pay band use this country's currency."
                 }
-                slotProps={{ select: { native: true } }}
+                slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
               >
                 <option value="">Choose a country</option>
                 {COUNTRY_CURRENCIES.map((entry) => (
@@ -262,7 +263,7 @@ export function NewEmployeePage() {
                 required
                 error={Boolean(fieldState.error)}
                 helperText={fieldState.error?.message}
-                slotProps={{ select: { native: true } }}
+                slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
               >
                 <option value="">Choose a department</option>
                 {metaQuery.data?.departments.map((department) => (
@@ -301,7 +302,7 @@ export function NewEmployeePage() {
                 required
                 error={Boolean(fieldState.error)}
                 helperText={fieldState.error?.message}
-                slotProps={{ select: { native: true } }}
+                slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
               >
                 <option value="">Choose a level</option>
                 {LEVELS.map((level) => (

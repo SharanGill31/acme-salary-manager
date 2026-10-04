@@ -87,7 +87,9 @@ export function SalaryByLevelSection() {
           size="small"
           value={countryCode}
           onChange={(event) => setCountryCode(event.target.value)}
-          slotProps={{ select: { native: true } }}
+          // The empty value is the real "All countries (USD)" option, so the
+          // label must always float rather than sit over that text.
+          slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
           sx={{ minWidth: 240 }}
         >
           <option value="">All countries (USD)</option>

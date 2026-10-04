@@ -177,11 +177,15 @@ export function EmployeesPage() {
           sx={{ minWidth: 220 }}
         />
 
+        {/* Each filter's empty value is a real "All …" option with text, so the
+            label must always float (shrink, with a notched outline); MUI would
+            otherwise draw it over that text because the value is "". */}
         <FormControl sx={{ minWidth: 140 }}>
-          <InputLabel htmlFor="country-filter">Country</InputLabel>
+          <InputLabel htmlFor="country-filter" shrink>Country</InputLabel>
           <Select
             native
             id="country-filter"
+            notched
             label="Country"
             value={query.countryCode}
             onChange={(event) => updateParams({ countryCode: event.target.value || undefined })}
@@ -196,10 +200,11 @@ export function EmployeesPage() {
         </FormControl>
 
         <FormControl sx={{ minWidth: 160 }}>
-          <InputLabel htmlFor="department-filter">Department</InputLabel>
+          <InputLabel htmlFor="department-filter" shrink>Department</InputLabel>
           <Select
             native
             id="department-filter"
+            notched
             label="Department"
             value={query.departmentId}
             onChange={(event) => updateParams({ departmentId: event.target.value || undefined })}
@@ -214,10 +219,11 @@ export function EmployeesPage() {
         </FormControl>
 
         <FormControl sx={{ minWidth: 120 }}>
-          <InputLabel htmlFor="level-filter">Level</InputLabel>
+          <InputLabel htmlFor="level-filter" shrink>Level</InputLabel>
           <Select
             native
             id="level-filter"
+            notched
             label="Level"
             value={query.level}
             onChange={(event) => updateParams({ level: event.target.value || undefined })}
@@ -232,10 +238,11 @@ export function EmployeesPage() {
         </FormControl>
 
         <FormControl sx={{ minWidth: 120 }}>
-          <InputLabel htmlFor="status-filter">Status</InputLabel>
+          <InputLabel htmlFor="status-filter" shrink>Status</InputLabel>
           <Select
             native
             id="status-filter"
+            notched
             label="Status"
             value={query.status}
             onChange={(event) => updateParams({ status: event.target.value || undefined })}
